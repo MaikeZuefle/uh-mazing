@@ -1,0 +1,6 @@
+*__pycache__*
+generated_output/*
+sample_audio/*
+z_outputs/*
+myjob_phi.sh
+myjob.sh
