@@ -4,3 +4,6 @@ sample_audio/*
 z_outputs/*
 myjob_phi.sh
 myjob.sh
+old
+old/*
+debug_audio

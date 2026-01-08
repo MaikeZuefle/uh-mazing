@@ -1,10 +1,10 @@
-from transformers import AutoModelForCausalLM, AutoProcessor, GenerationConfig
+
 import soundfile as sf
 from utils import read_txt_file
 
 def load_model():
+    from transformers import AutoModelForCausalLM, AutoProcessor, GenerationConfig
     model_path = "microsoft/Phi-4-multimodal-instruct"
-
     processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
     model = AutoModelForCausalLM.from_pretrained(
         model_path, 
@@ -18,7 +18,7 @@ def load_model():
 
     return model, processor, generation_config
 
-def generate(model_processor_config, prompt, example_path, modality):
+def generate(model_processor_config, prompt, example_path, modality, src_lang=None, trg_lang=None):
     if modality != "audio":
         raise NotImplementedError("Phi only supports audio in this implementation!")
 

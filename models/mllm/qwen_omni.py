@@ -14,7 +14,7 @@ def load_model():
     return model, processor
 
 
-def generate(model_processor, prompt, example_path, modality):
+def generate(model_processor, prompt, example_path, modality, src_lang=None, trg_lang=None):
     from qwen_omni_utils import process_mm_info
     model, processor = model_processor
 
@@ -32,8 +32,7 @@ def generate(model_processor, prompt, example_path, modality):
 
     elif modality == "text":
         USE_AUDIO_IN_VIDEO = False
-        example = read_txt_file(example_path)
-        user_conv_content = [{"type": "text", "text": f"{example}\n{prompt}\n"}, ]
+        user_conv_content = [{"type": "text", "text": f"{example_path}\n{prompt}\n"}, ]
         
     
 

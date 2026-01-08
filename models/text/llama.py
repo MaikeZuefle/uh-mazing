@@ -1,8 +1,8 @@
-import torch
-import transformers
 from utils import read_txt_file
 
 def load_model():
+    import torch
+    import transformers
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model_id = (
         "meta-llama/Meta-Llama-3.1-8B-Instruct"  # Replace with your model path
@@ -17,12 +17,12 @@ def load_model():
 
 
 
-def generate(pipeline, prompt, example_path, modality):
+def generate(pipeline, prompt, example_path, modality, src_lang=None, trg_lang=None):
 
     if modality != "text":
         raise NotImplementedError("Llama only supports text!")
     
-    example = read_txt_file(example_path)
+    example = example_path
 
     system_prompt = "A chat between a curious user and an artificial intelligence assistant. Only return the answer requested. Do not include any explanation or introductions.\n"
     user_prompt = f"{example}\n{prompt}"
