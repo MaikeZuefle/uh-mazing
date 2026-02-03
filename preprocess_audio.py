@@ -1,6 +1,7 @@
 import os
 import pandas as pd
-from pydub import AudioSegment
+import torch
+import torchaudio
 
 # Paths
 csv_file = "translation-dataset-with-timestamps.csv"
@@ -19,8 +20,8 @@ for idx, row in df.iterrows():
     file_id = f"sw0{file_id}"
     speaker = row['speaker']  # A or B
     turn = row['turn']
-    start_time = float(row['start_time']) * 1000  # pydub works in milliseconds
-    end_time = float(row['end_time']) * 1000
+    start_time = float(row['start_time'])  # seconds
+    end_time = float(row['end_time'])      # seconds
 
     filename = f"{file_id}_{speaker}_{turn}.wav"
     audio_file_path = os.path.join(input_audio_folder, filename)
@@ -30,25 +31,15 @@ for idx, row in df.iterrows():
         continue
 
 
-    # Load audio
-    audio = AudioSegment.from_wav(audio_file_path)
+    waveform, sample_rate = torchaudio.load(audio_file_path)  # waveform: [channels, samples]
 
-    # Select channel
-    if speaker.upper() == 'A':
-        channel_audio = audio.split_to_mono()[0]  # Left channel
-    else:
-        channel_audio = audio.split_to_mono()[1]  # Right channel
-
-    # Cut the audio using timestamps
-    try:
-        snippet = channel_audio[start_time:end_time]
-    except:
-        breakpoint()
+    # Select channel (0 = left / A, 1 = right / B)
+    channel_idx = 0 if speaker == 'A' else 1
+    channel_audio = waveform[channel_idx]  # [samples]
 
     # Save snippet
-    output_filename = f"{file_id}_{speaker}_{row['turn']}.wav"
-    snippet.export(os.path.join(output_audio_folder, output_filename), format="wav")
-
+    output_filename = f"{file_id}_{speaker}_{turn}.wav"
+    torchaudio.save(os.path.join(output_audio_folder, output_filename), channel_audio.unsqueeze(0), sample_rate)
     print(f"Saved {output_filename}")
 
 print("All audio snippets processed.")
