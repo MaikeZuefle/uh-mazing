@@ -3,16 +3,11 @@
 # Language dictionary
 
 declare -A LANGUAGE_DICT=( 
-    ["zh"]="Mandarin"
     ["es"]="Spanish"
-    ["hi"]="Hindi"
     ["fr"]="French"
     ["de"]="German"
     ["it"]="Italian"
-    ["sw"]="Swahili"
     ["cs"]="Czech"
-    ["ar"]="Arabic"
-    ["lg"]="Luganda"
 )
 
 SRC_LANG="en"

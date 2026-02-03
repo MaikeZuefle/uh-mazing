@@ -8,6 +8,5 @@ def generate(asr_ast_model, prompt, example_path, modality, src_lang, trg_lang):
     if modality != "audio":
         raise NotImplementedError("Phi only supports audio in this implementation!")
     
-    breakpoint()
     response = asr_ast_model.transcribe(example_path, source_lang=src_lang, target_lang=trg_lang)[0].text
     return response

@@ -65,7 +65,7 @@ cat <<EOT > $tmp_script
 #SBATCH --error="z_outputs/${job_name}-%j.err-%N"
 
 
-module load ML-bundle/24.06a
+module load ML-bundle
 source /net/scratch/hscra/plgrid/plgzuefle/venvs/canary/bin/activate
 
 

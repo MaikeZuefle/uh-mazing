@@ -15,7 +15,14 @@ LANGUAGE_DICT = {
     "tr": "Turkish",
     "it": "Italian",
     "en": "English",
+    "hi": "Hindi",
+    "fr": "French",
+    "sw": "Swahili",
+    "cs": "Czech",
+    "ar": "Arabic",
+    "lg": "Luganda"
 }
+
 
 def set_up_logging(output_file_path):
     log_file = output_file_path.replace(".xml", ".log")
