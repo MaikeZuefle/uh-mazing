@@ -1,21 +1,18 @@
 #!/bin/bash
 
 # Language dictionary
-declare -A LANGUAGE_DICT=(
+declare -A LANGUAGE_DICT=( 
+    ["zh"]="Mandarin"
+    ["es"]="Spanish"
+    ["hi"]="Hindi"
+    ["fr"]="French"
     ["de"]="German"
+    ["it"]="Italian"
+    ["sw"]="Swahili"
+    ["cs"]="Czech"
+    ["ar"]="Arabic"
+    ["lg"]="Luganda"
 )
-
-# declare -A LANGUAGE_DICT=(
-#     ["zh"]="Mandarin"
-#     ["es"]="Spanish"
-#     ["hu"]="Hungarian"
-#     ["ro"]="Romanian"
-#     ["de"]="German"
-#     ["cs"]="Czech"
-#     ["vi"]="Vietnamese"
-#     ["tr"]="Turkish"
-#     ["it"]="Italian"
-# )
 
 SRC_LANG="en"
 

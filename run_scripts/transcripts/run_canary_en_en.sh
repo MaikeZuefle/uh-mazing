@@ -13,7 +13,7 @@ PROMPTS=("standard")
 # Models for audio modality
 MODELS=("canary")
 
-IN_DATA_FOLDER="debug_audio"
+IN_DATA_FOLDER="translation_data/translation_dataset_audio_preprocessed"
 
 # Loop over all combinations
 for lang_code in "${!LANGUAGE_DICT[@]}"; do

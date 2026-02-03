@@ -1,4 +1,6 @@
-whisper_langs = {"en":"english", "de": "german"}
+whisper_langs = {"en":"english", "de": "german", "zh": "mandarin", "es":"spanish", "hi": "hindi", "fr": "french", "it": "italian", "sw": "swahili", 
+"cs": "czech", "ar": "arabic", "lg": "luganda"}
+
 
 def load_model():
     from transformers import pipeline

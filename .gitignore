@@ -7,3 +7,5 @@ myjob.sh
 old
 old/*
 debug_audio
+translation-dataset-with-timestamps.csv
+translation_data/
