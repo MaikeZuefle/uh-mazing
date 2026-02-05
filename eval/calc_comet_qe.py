@@ -10,7 +10,8 @@ from utils import load_csv_references, load_xml_hypotheses, clean_disfluency_tex
 def load_comet_model(model_name="Unbabel/wmt22-cometkiwi-da"):
     """Load COMET-KIWI quality estimation model."""
     model_path = download_model(model_name)
-    model = load_from_checkpoint(model_path)
+    model = load_from_checkpoint(model_path).to("cuda")
+
     return model
 
 # ----------------------------
