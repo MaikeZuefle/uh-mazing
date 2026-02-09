@@ -1,13 +1,19 @@
 import pandas as pd
 import xml.etree.ElementTree as ET
 from jiwer import wer, Compose, ToLowerCase, RemovePunctuation, RemoveMultipleSpaces, Strip, ExpandCommonEnglishContractions
+normalizer = Compose([
+    RemoveMultipleSpaces(),
+    Strip()
+])
+
+
 
 def clean_disfluency_text(text: str) -> str:
     """
     Remove underscore-based disfluency markers.
     Example: _uh_ -> uh
     """
-    return text.replace("_", "")
+    return normalizer(text.replace("_", "").replace("ـ", ""))
 
 # ----------------------------
 # Load XML hypothesis

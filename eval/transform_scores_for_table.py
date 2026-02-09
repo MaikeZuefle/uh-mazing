@@ -10,14 +10,17 @@ MODELS = [
     "gold-transcript-llama",
     "gold-transcript-tower",
     "canary",
-    "whisper",
     "phi",
     "qwen"
 ]
 
-def normalize_score(score):
+def normalize_score(score, score_name):
+    
     if len(score) > 0:
-        score = round(score[0]*100, 2)
+        if "comet" in score_name:
+            score = round(score[0]*100, 2)
+        else:
+            score = round(score[0], 2)
     else:
         score = None
     return score
@@ -33,6 +36,10 @@ def transform_results(input_csv, output_csv):
     """
     # Load the data
     df = pd.read_csv(input_csv)
+    if "comet" in input_csv:
+        score_name = "comet_score"
+    elif "chrf" in input_csv:
+        score_name = "chrf_score"
     
     # Create a mapping from (model_type, model) to standardized model name
     model_mapping = {
@@ -44,8 +51,8 @@ def transform_results(input_csv, output_csv):
         ("gold_cascaded", "tower"): "gold-transcript-tower",
         ("end2end", "canary"): "canary",
         ("end2end", "whisper"): "whisper",
-        ("speechllm", "phi"): "phi",
-        ("speechllm", "qwen"): "qwen",
+        ("speechllm", "phi_multimodal"): "phi",
+        ("speechllm", "qwen_omni"): "qwen",
     }
     
     # Add standardized model name column
@@ -74,9 +81,9 @@ def transform_results(input_csv, output_csv):
                     score = model_df[
                         (model_df["lang"] == lang) & 
                         (model_df["prompt_type"] == prompt_type)
-                    ]["comet_score"].values
+                    ][score_name].values
                     
-                    row[lang] = normalize_score(score)
+                    row[lang] = normalize_score(score, score_name)
                 
                 rows.append(row)
         else:
@@ -85,8 +92,8 @@ def transform_results(input_csv, output_csv):
             
             # Add score for each language
             for lang in LANGUAGES:
-                score = model_df[model_df["lang"] == lang]["comet_score"].values               
-                row[lang] = row[lang] = normalize_score(score)
+                score = model_df[model_df["lang"] == lang][score_name].values               
+                row[lang] = row[lang] = normalize_score(score, score_name)
             
             rows.append(row)
     
@@ -109,6 +116,6 @@ def transform_results(input_csv, output_csv):
 if __name__ == "__main__":
     # Transform the results
     transform_results(
-        input_csv="comet_evaluation_results.csv",
-        output_csv="comet_results_structured.csv"
+        input_csv="chrf_evaluation_results.csv",
+        output_csv="chrf_results_structured.csv"
     )
