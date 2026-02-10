@@ -15,11 +15,10 @@ def load_model():
 
 def generate(pipe, prompt, example_path, modality, src_lang, trg_lang):
     if modality != "audio":
-        raise NotImplementedError("Phi only supports audio in this implementation!")
+        raise NotImplementedError("Whisper only supports audio in this implementation!")
     
     if src_lang == trg_lang:
         response = pipe(example_path, return_timestamps=True)["text"]
     else:
         response = pipe(example_path,  return_timestamps=True, generate_kwargs={"language": whisper_langs[trg_lang], "task": "translate"})["text"]
-
     return response

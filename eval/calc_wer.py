@@ -53,8 +53,8 @@ def compute_wers(csv_path, xml_path):
 # ----------------------------
 if __name__ == "__main__":
     results = compute_wers(
-        csv_path="utils_processing_data/translation-dataset-with-timestamps.csv",
-        xml_path="generated_output/transcript/whisper/audio_en_en_standard_whisper_output.xml"
+        csv_path="translation_data/translation-dataset-with-timestamps.csv",
+        xml_path="generated_output/transcript/canary/audio_en_en_standard_canary_output.xml"
     )
     # generated_output/transcript/whisper/audio_en_en_standard_whisper_output.xml
     # generated_output/transcript/canary/audio_en_en_standard_canary_output.xml

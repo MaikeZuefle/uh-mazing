@@ -15,6 +15,8 @@ from models.speech.whisper import generate as generate_whisper
 from models.speech.whisper import load_model as load_whisper
 from models.speech.canary import generate as generate_canary
 from models.speech.canary import load_model as load_canary
+from models.speech.owsm import generate as generate_owsm
+from models.speech.owsm import load_model as load_owsm
 
 
 # import text models
@@ -53,6 +55,9 @@ def load_model(model_name):
     elif model_name == "canary":
         model = load_canary()
         generate_func = generate_canary
+    elif model_name == "owsm":
+        model = load_owsm()
+        generate_func = generate_owsm
 
     else:
         raise NotImplementedError(f"Model {model_name} currently not supported!")
@@ -142,6 +147,7 @@ if __name__ == "__main__":
         "qwen_omni",
         "canary",
         "whisper",
+        "owsm",
     ]
 
     parser = argparse.ArgumentParser(description="Process MCIF data.")

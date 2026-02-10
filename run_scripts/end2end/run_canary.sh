@@ -3,11 +3,11 @@
 # Language dictionary
 
 declare -A LANGUAGE_DICT=( 
-    # ["es"]="Spanish"
+    ["es"]="Spanish"
     ["fr"]="French"
-    # ["de"]="German"
-    # ["it"]="Italian"
-    # ["cs"]="Czech"
+    ["de"]="German"
+    ["it"]="Italian"
+    ["cs"]="Czech"
 )
 
 SRC_LANG="en"

@@ -21,7 +21,7 @@ SRC_LANG="en"
 PROMPTS=("standard")
 
 # Models for audio modality
-MODELS=("whisper")
+MODELS=("owsm")
 
 IN_DATA_FOLDER="translation_data/translation_dataset_audio_preprocessed"
 

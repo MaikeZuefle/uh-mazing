@@ -50,7 +50,7 @@ def transform_results(input_csv, output_csv):
         ("gold_cascaded", "llama"): "gold-transcript-llama",
         ("gold_cascaded", "tower"): "gold-transcript-tower",
         ("end2end", "canary"): "canary",
-        ("end2end", "whisper"): "whisper",
+        ("end2end", "owsm"): "owsm",
         ("speechllm", "phi_multimodal"): "phi",
         ("speechllm", "qwen_omni"): "qwen",
     }
