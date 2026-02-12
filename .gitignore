@@ -1,3 +1,7 @@
+# added by zouharvi
+/data
+
+# other
 *__pycache__*
 generated_output/*
 sample_audio/*
