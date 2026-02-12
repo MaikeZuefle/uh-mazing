@@ -9,6 +9,7 @@ MODELS = [
     "whisper-tower",
     "gold-transcript-llama",
     "gold-transcript-tower",
+    "owsm",
     "canary",
     "phi",
     "qwen"
@@ -56,6 +57,7 @@ def transform_results(input_csv, output_csv):
     }
     
     # Add standardized model name column
+    breakpoint()
     df["model_name"] = df.apply(
         lambda row: model_mapping.get((row["model_type"], row["model"]), f"{row['model_type']}-{row['model']}"),
         axis=1
@@ -116,6 +118,6 @@ def transform_results(input_csv, output_csv):
 if __name__ == "__main__":
     # Transform the results
     transform_results(
-        input_csv="chrf_evaluation_results.csv",
-        output_csv="chrf_results_structured.csv"
+        input_csv="comet_evaluation_results.csv",
+        output_csv="comet_results_structured.csv"
     )
