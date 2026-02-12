@@ -1,0 +1,58 @@
+[
+    [
+        {
+            "text": "Hi! Thanks for taking part in our study. We'll first guide you through a tutorial.",
+            "form": null
+        },
+        {
+            "text": "What is your native language?",
+            "form": "string"
+        },
+        {
+            "text": "What is your proficiency in English?",
+            "form": "choices",
+            "choices": [
+                "Elementary",
+                "Limited working",
+                "Professional",
+                "Professional long-term",
+                "Native"
+            ]
+        },
+        {
+            "text": "What is your proficiency in LANG2?",
+            "form": "choices",
+            "choices": [
+                "Elementary",
+                "Limited working",
+                "Professional",
+                "Professional long-term",
+                "Native"
+            ]
+        },
+        {
+            "text": "Do you have experience translating content between English and LANG2?",
+            "form": "choices",
+            "choices": [
+                "None: fluent speaker but no translation experience",
+                "Informal: occasionally for friends, family or as a volunteer",
+                "Professional: previously paid to translate text or interpret speech"
+            ]
+        },
+        {
+            "text": "Do you have academic background in linguistics?",
+            "form": "choices",
+            "choices": [
+                "No",
+                "Limited",
+                "Yes"
+            ]
+        }
+    ],
+    [
+        {
+            "instructions": "Your task is to annotate the translation quality based on audio and mark phenomena.<br>",
+            "tgt": {}
+        }
+    ]
+]

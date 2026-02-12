@@ -5,9 +5,17 @@ import os
 import random
 
 os.makedirs("humeval/data/campaigns", exist_ok=True)
-with open("humeval/data/data_welcome.json", "r") as f:
-    data_welcome = json.load(f)
 langs = ["ar", "cs", "de", "es", "fr", "hi", "it", "zh"]
+lang2name = {
+    "ar": "Arabic",
+    "cs": "Czech",
+    "de": "German",
+    "es": "Spanish",
+    "fr": "French",
+    "hi": "Hindi",
+    "it": "Italian",
+    "zh": "Chinese",
+}
 models = ["speechllm/phi_multimodal", "end2end/canary", "gold_cascaded/tower"]
 
 data_gold = {}
@@ -58,6 +66,9 @@ for lang in langs:
     # chunk to size 20
     data_out = [data_out[i : i + 20] for i in range(0, len(data_out), 20)]
 
+    with open("humeval/data/data_welcome.json", "r") as f:
+        data_welcome = json.loads(f.read().replace("LANG2", lang2name[lang]))
+
     campaign = {
         "info": {
             "assignment": "task-based",
@@ -84,7 +95,7 @@ for lang in langs:
             "instructions": "TODO",
         },
         "campaign_id": f"uhmazing_v0_{lang}.json",
-        # "data_welcome": data_welcome,
+        "data_welcome": data_welcome,
         "data": data_out,
     }
     # assets can be attached to only one
