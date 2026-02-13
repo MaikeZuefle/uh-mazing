@@ -29,7 +29,7 @@ IN_DATA_FOLDER=generated_output/transcript/whisper
 for lang_code in "${!LANGUAGE_DICT[@]}"; do
     for prompt in "${PROMPTS[@]}"; do
         for model in "${MODELS[@]}"; do
-            echo "Running model: $model | Modality: audio | Language: ${LANGUAGE_DICT[$lang_code]} ($lang_code) | Prompt: $prompt"
+            echo "Running model: $model | Modality: text | Language: ${LANGUAGE_DICT[$lang_code]} ($lang_code) | Prompt: $prompt"
             python main.py --src_lang $SRC_LANG --trg_lang "$lang_code" --modality text --prompt "$prompt" --model "$model" --in_data_folder $IN_DATA_FOLDER --out_folder generated_output/whisper_cascaded
             echo "----------------------------------------------------"
         done
