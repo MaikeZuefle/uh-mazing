@@ -15,14 +15,15 @@ def init_chrf():
 # ----------------------------
 # Compute CHRF++ scores
 # ----------------------------
-def compute_chrf_scores(references_csv, xml_path, lang):
+def compute_chrf_scores(references_csv, xml_path, source_lang, target_lang):
     """
     Compute CHRF++ scores.
     
     Args:
         references_csv: Path to CSV with reference translations
         xml_path: Path to XML with translations (hypotheses)
-        lang: Target language code (e.g., 'de', 'fr', 'ar')
+        source_lang: Source language code (e.g., 'en', 'de')
+        target_lang: Target language code (e.g., 'de', 'en')
     
     Returns:
         CHRF++ score (float) or None if no valid samples
@@ -33,7 +34,7 @@ def compute_chrf_scores(references_csv, xml_path, lang):
     # Load hypotheses
     hyps_dict = load_xml_hypotheses(xml_path)
     
-    # Language code mapping to column names
+    # Language code mapping to column names (for x→en and en→x)
     lang_column_map = {
         'ar': 'AR_disfluent',
         'cs': 'CS_disfluent',
@@ -44,14 +45,15 @@ def compute_chrf_scores(references_csv, xml_path, lang):
         'it': 'IT_disfluent',
         'zh': 'ZH_disfluent',
         'sw': 'SW_disfluent',
-        'lg': 'LG_disfluent'
+        'lg': 'LG_disfluent',
+        'en': 'EN_disfluent'  # Added for x→en translations
     }
 
-    if lang not in lang_column_map:
-        print(f"Warning: Language {lang} not found in reference columns")
+    if target_lang not in lang_column_map:
+        print(f"Warning: Target language {target_lang} not found in reference columns")
         return None
     
-    ref_column = lang_column_map[lang]
+    ref_column = lang_column_map[target_lang]
     
     if ref_column not in refs_df.columns:
         print(f"Warning: Column {ref_column} not found in references CSV")
@@ -90,18 +92,29 @@ def compute_chrf_scores(references_csv, xml_path, lang):
     return score.score
 
 # ----------------------------
-# Extract language from filename
+# Extract language pair from filename
 # ----------------------------
 def extract_language_from_filename(filename):
     """
-    Extract target language code from filename.
-    Expected format: *_en_LANG_*_output.xml
-    Example: text_en_de_standard_llama_output.xml -> de
+    Extract source and target language codes from filename.
+    Expected formats:
+    - en→x: *_en_LANG_*_output.xml (e.g., text_en_de_standard_llama_output.xml)
+    - x→en: *_LANG_en_*_output.xml (e.g., text_de_en_standard_llama_output.xml)
+    
+    Returns:
+        tuple: (source_lang, target_lang) or (None, None) if not found
     """
+    # Try en→x pattern first
     match = re.search(r'_en_([a-z]{2})_', filename)
     if match:
-        return match.group(1)
-    return None
+        return ("en", match.group(1))
+    
+    # Try x→en pattern
+    match = re.search(r'_([a-z]{2})_en_', filename)
+    if match:
+        return (match.group(1), "en")
+    
+    return (None, None)
 
 # ----------------------------
 # Extract prompt type from filename
@@ -180,10 +193,10 @@ def evaluate_all_translations(base_dir="generated_output", references_csv="refer
                     print(f"    Skipping {filename} (already evaluated)")
                     continue
                 
-                # Extract language from filename
-                lang = extract_language_from_filename(filename)
-                if lang is None:
-                    print(f"    Warning: Could not extract language from {filename}")
+                # Extract language pair from filename
+                source_lang, target_lang = extract_language_from_filename(filename)
+                if source_lang is None or target_lang is None:
+                    print(f"    Warning: Could not extract language pair from {filename}")
                     continue
                 
                 # Extract prompt type from filename
@@ -194,16 +207,18 @@ def evaluate_all_translations(base_dir="generated_output", references_csv="refer
                 
                 xml_path = os.path.join(model_path, filename)
                 
-                print(f"    Evaluating {filename} (lang: {lang}, prompt: {prompt_type})")
+                print(f"    Evaluating {filename} (lang: {source_lang}→{target_lang}, prompt: {prompt_type})")
 
-                chrf_score = compute_chrf_scores(references_csv, xml_path, lang)
+                chrf_score = compute_chrf_scores(references_csv, xml_path, source_lang, target_lang)
                 
                 if chrf_score is not None:
                     # Create new result row
                     new_result = pd.DataFrame([{
                         "model_type": model_type,
                         "model": model_name,
-                        "lang": lang,
+                        "source_lang": source_lang,
+                        "target_lang": target_lang,
+                        "lang_pair": f"{source_lang}-{target_lang}",
                         "prompt_type": prompt_type,
                         "chrf_score": chrf_score,
                         "filename": filename
@@ -238,6 +253,10 @@ def evaluate_all_translations(base_dir="generated_output", references_csv="refer
         print("\nSummary by model_type:")
         summary = final_df.groupby("model_type")["chrf_score"].agg(["mean", "std", "count"])
         print(summary)
+        
+        print("\nSummary by language pair:")
+        summary_lang = final_df.groupby("lang_pair")["chrf_score"].agg(["mean", "std", "count"])
+        print(summary_lang)
     else:
         print("\nNo results to save.")
 

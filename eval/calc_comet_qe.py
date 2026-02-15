@@ -17,7 +17,7 @@ def load_comet_model(model_name="Unbabel/wmt22-cometkiwi-da"):
 # ----------------------------
 # Compute COMET-KIWI scores
 # ----------------------------
-def compute_comet_scores(csv_path, xml_path, model):
+def compute_comet_scores(csv_path, xml_path, model, source_lang, target_lang):
     """
     Compute COMET-KIWI quality estimation scores.
     
@@ -25,6 +25,8 @@ def compute_comet_scores(csv_path, xml_path, model):
         csv_path: Path to CSV with source texts (disfluent)
         xml_path: Path to XML with translations (hypotheses)
         model: Loaded COMET model
+        source_lang: Source language code (e.g., 'en', 'de')
+        target_lang: Target language code (e.g., 'de', 'en')
     
     Returns:
         System score (float) or None if no valid samples
@@ -43,6 +45,7 @@ def compute_comet_scores(csv_path, xml_path, model):
             continue
         
         # Source is the disfluent text (cleaned)
+        # Note: Adjust this logic if you have different source columns for different language pairs
         source_text = clean_disfluency_text(row["text_disfluent"])
         translation_text = hyps_dict[sample_id]
         
@@ -61,18 +64,29 @@ def compute_comet_scores(csv_path, xml_path, model):
     return model_output.system_score
 
 # ----------------------------
-# Extract language from filename
+# Extract language pair from filename
 # ----------------------------
 def extract_language_from_filename(filename):
     """
-    Extract target language code from filename.
-    Expected format: *_en_LANG_*_output.xml
-    Example: text_en_de_standard_llama_output.xml -> de
+    Extract source and target language codes from filename.
+    Expected formats:
+    - en→x: *_en_LANG_*_output.xml (e.g., text_en_de_standard_llama_output.xml)
+    - x→en: *_LANG_en_*_output.xml (e.g., text_de_en_standard_llama_output.xml)
+    
+    Returns:
+        tuple: (source_lang, target_lang) or (None, None) if not found
     """
+    # Try en→x pattern first
     match = re.search(r'_en_([a-z]{2})_', filename)
     if match:
-        return match.group(1)
-    return None
+        return ("en", match.group(1))
+    
+    # Try x→en pattern
+    match = re.search(r'_([a-z]{2})_en_', filename)
+    if match:
+        return (match.group(1), "en")
+    
+    return (None, None)
 
 # ----------------------------
 # Extract prompt type from filename
@@ -153,10 +167,10 @@ def evaluate_all_translations(base_dir="generated_output", csv_path="utils_proce
                     print(f"    Skipping {filename} (already evaluated)")
                     continue
                 
-                # Extract language from filename
-                lang = extract_language_from_filename(filename)
-                if lang is None:
-                    print(f"    Warning: Could not extract language from {filename}")
+                # Extract language pair from filename
+                source_lang, target_lang = extract_language_from_filename(filename)
+                if source_lang is None or target_lang is None:
+                    print(f"    Warning: Could not extract language pair from {filename}")
                     continue
                 
                 # Extract prompt type from filename
@@ -167,16 +181,18 @@ def evaluate_all_translations(base_dir="generated_output", csv_path="utils_proce
                 
                 xml_path = os.path.join(model_path, filename)
                 
-                print(f"    Evaluating {filename} (lang: {lang}, prompt: {prompt_type})")
+                print(f"    Evaluating {filename} (lang: {source_lang}→{target_lang}, prompt: {prompt_type})")
                 
-                comet_score = compute_comet_scores(csv_path, xml_path, model)
+                comet_score = compute_comet_scores(csv_path, xml_path, model, source_lang, target_lang)
                 
                 if comet_score is not None:
                     # Create new result row
                     new_result = pd.DataFrame([{
                         "model_type": model_type,
                         "model": model_name,
-                        "lang": lang,
+                        "source_lang": source_lang,
+                        "target_lang": target_lang,
+                        "lang_pair": f"{source_lang}-{target_lang}",
                         "prompt_type": prompt_type,
                         "comet_score": comet_score,
                         "filename": filename
@@ -211,6 +227,10 @@ def evaluate_all_translations(base_dir="generated_output", csv_path="utils_proce
         print("\nSummary by model_type:")
         summary = final_df.groupby("model_type")["comet_score"].agg(["mean", "std", "count"])
         print(summary)
+        
+        print("\nSummary by language pair:")
+        summary_lang = final_df.groupby("lang_pair")["comet_score"].agg(["mean", "std", "count"])
+        print(summary_lang)
     else:
         print("\nNo results to save.")
 
@@ -220,6 +240,6 @@ def evaluate_all_translations(base_dir="generated_output", csv_path="utils_proce
 if __name__ == "__main__":
     evaluate_all_translations(
         base_dir="generated_output",
-        csv_path="utils_processing_data/translation-dataset-with-timestamps.csv",
+        csv_path="translation_data/translation-dataset-with-timestamps.csv",
         output_csv="comet_evaluation_results.csv"
     )
