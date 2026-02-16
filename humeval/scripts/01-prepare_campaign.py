@@ -92,7 +92,42 @@ for lang in langs:
                 {"name": "Style preservation", "min": 0, "max": 100, "step": 1},
                 {"name": "Meaning preservation", "min": 0, "max": 100, "step": 1},
             ],
-            "instructions": "TODO",
+            "instructions": """
+We have a speech audio and its translation. The speech audio contains disfluencies, such as "uh," "um," repeated words, self-corrections, etc.
+Your task is to evaluate both:
+<ul>
+<li>How well the disfluencies are preserved in the translation</li>
+<li>How natural these disfluencies sound in the target language</li>
+</ul>
+Specifically, you will:
+<ul>
+<li>Use sliders (0-100) to rate preservation of Style and Meaning</li>
+<li>If you notice an error, please annotate one of the following error categories:
+
+For general errors that affect text and translation quality, you can select:
+
+<ul>
+<li>General > Incorrect language: Wrong language used</li>
+<li>General > Missing content: Part of the source content was not translated</li>
+<li>General > Extra content: Content was added that is not in the source</li>
+<li>General > Looping: Unintended repetition in the translation</li>
+</ul>
+<ul>
+For errors that directly relate to disfluencies, you can select:
+<ul>
+<li>Disfluency > Deletion: A source disfluency is missing in the translation</li>
+<li>Disfluency > Extra: A new disfluency is added in the translation, absent, from the source</li>
+<li>Disfluency > Type mismatch: Disfluency type is changed (e.g., repetition → filler)</li>
+</ul>
+</ul>
+Lastly, you will rate the overall quality of the translation in two aspects on a 0-100 scale, using sliders:
+<ul>
+<li>Style Preservation: How well are disfluencies preserved (presence, type, placement, spoken feel)?</li>
+<li>Meaning Preservation: How accurately and completely is the source meaning preserved?</li>
+<li>Rate each from 0% (poor) to 100% (excellent).</li>
+</ul>
+Thanks for your help!
+""",
         },
         "campaign_id": f"uhmazing_v0_{lang}.json",
         "data_welcome": data_welcome,

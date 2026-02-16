@@ -6,6 +6,6 @@ How to set up the human campaign:
 3. Add campaign files `pearmut add humeval/data/campaigns/*.json`
 4. Start campaign locally `pearmut run`
 
-If the campaign needs to be hosted on the internet with ngrok, use:
+If the campaign needs to be hosted on the internet with ngrok, use something like the following:
 
 5. `pearmut run --port 8001 --server https://pearmut.ngrok.io` and `ngrok http --url=pearmut.ngrok.io 8001` in separate terminals
