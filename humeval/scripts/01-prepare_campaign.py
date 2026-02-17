@@ -16,7 +16,12 @@ lang2name = {
     "it": "Italian",
     "zh": "Chinese",
 }
-models = ["speechllm/phi_multimodal", "end2end/canary", "gold_cascaded/tower"]
+models = [
+    "speechllm/phi_multimodal",
+    "end2end/canary",
+    "gold_cascaded/tower",
+    "end2end/gemini-2.5-flash",
+]
 
 data_gold = {}
 with open("humeval/data/audio_en_en_standard_gold_output.xml", "r") as f:
@@ -52,6 +57,9 @@ for lang in langs:
     data_out = []
     for item_id, item in data.items():
         median_len = len(sorted(item.values(), key=len)[len(item) // 2])
+        if lang == "ar" and not all(model in item for model in _models):
+            print("Skipping", item_id)
+            continue
         data_out.append(
             [
                 {

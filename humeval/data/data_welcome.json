@@ -47,6 +47,11 @@
                 "Limited",
                 "Yes"
             ]
+        },
+        {
+            "text": "",
+            "form": "script",
+            "script": "return {\"prolific_id\": new URLSearchParams(window.location.search).get('prolific_id')}"
         }
     ],
     [
