@@ -47,12 +47,57 @@
                 "Limited",
                 "Yes"
             ]
+        },
+        {
+            "text": "",
+            "form": "script",
+            "script": "return {\"prolific_id\": new URLSearchParams(window.location.search).get('prolific_id')}"
         }
     ],
     [
         {
-            "instructions": "Your task is to annotate the translation quality based on audio and mark phenomena.<br>",
-            "tgt": {}
+            "instructions": "<div class='white-box' style='background-color: #e7e2cf; margin-bottom: 10pt;'>Let's try it out. Imagine the text in English is actually a translation in LANG2. This one seems to be perfectly adequate, so set both sliders to 100%.</div>",
+            "src": "<audio controls src='assets/preprocessed_audio_switchboard/sw02005_A_47.wav'></audio>",
+            "tgt": {
+                "default": "I think they they had a great deal of uhm all the brothers and sisters got together and they actually had a conference."
+            },
+            "validation": {
+                "default": {
+                    "warning": "Please set both sliders to 100%.",
+                    "Style preservation": 100,
+                    "Meaning preservation": 100
+                }
+            }
+        },
+        {
+            "instructions": "<div class='white-box' style='background-color: #e7e2cf; margin-bottom: 10pt;'>This one seems to have extra disfluencies. Mark them as 'major' error with the category 'Disfluency > Extra disfluency'. Set the 'Style preservation' to around 70%.</div>",
+            "src": "<audio controls src='assets/preprocessed_audio_switchboard/sw02005_A_47.wav'></audio>",
+            "tgt": {
+                "default": "Ahh mmm eh I think they they had a great deal of uhm all the brothers and sisters got together and they actually had a conference."
+            },
+            "validation": {
+                "default": {
+                    "warning": "Please set the 'Style preservation' to 70% and 'Meaning preservation' to 100%.<br>Mark the error spans by clicking at the beginning and the end in the text.",
+                    "Style preservation": [
+                        65,
+                        85
+                    ],
+                    "Meaning preservation": 100,
+                    "error_spans": [
+                        {
+                            "start_i": [
+                                0,
+                                3
+                            ],
+                            "end_i": [
+                                8,
+                                14
+                            ],
+                            "severity": "major"
+                        }
+                    ]
+                }
+            }
         }
     ]
 ]
