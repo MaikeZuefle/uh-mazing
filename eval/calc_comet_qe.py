@@ -39,16 +39,15 @@ def compute_comet_scores(csv_path, xml_path, model, source_lang, target_lang):
     sources = []
     translations = []
     
+
     for _, row in refs_df.iterrows():
+
         sample_id = row["sample_id"]
         if sample_id not in hyps_dict:
             continue
         
-        # Source is the disfluent text (cleaned)
-        # Note: Adjust this logic if you have different source columns for different language pairs
-        source_text = clean_disfluency_text(row["text_disfluent"])
+        source_text = clean_disfluency_text(row[f"{source_lang.upper()}_disfluent"])
         translation_text = hyps_dict[sample_id]
-        
         sources.append(source_text)
         translations.append(translation_text)
     
@@ -56,8 +55,9 @@ def compute_comet_scores(csv_path, xml_path, model, source_lang, target_lang):
         return None
     
     # Prepare input for COMET-KIWI
+
     data = [{"src": src, "mt": mt} for src, mt in zip(sources, translations)]
-    
+
     # Compute scores
     model_output = model.predict(data, batch_size=8, gpus=1)
     
@@ -240,6 +240,6 @@ def evaluate_all_translations(base_dir="generated_output", csv_path="utils_proce
 if __name__ == "__main__":
     evaluate_all_translations(
         base_dir="generated_output",
-        csv_path="translation_data/translation-dataset-with-timestamps.csv",
+        csv_path="eval/references.csv",
         output_csv="comet_evaluation_results.csv"
-    )
+    )   

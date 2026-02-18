@@ -42,13 +42,20 @@ def load_csv_references(csv_path):
     """
     df = pd.read_csv(csv_path)
 
-    df["sample_id"] = (
-        "sw"
-        + df["file"].str.replace("sw", "", regex=False).str.zfill(5)
-        + "_"
-        + df["speaker"].astype(str)
-        + "_"
-        + df["turn"].astype(str)
-    )
+    if "file" in df:
+        df["sample_id"] = (
+            "sw"
+            + df["file"].str.replace("sw", "", regex=False).str.zfill(5)
+            + "_"
+            + df["speaker"].astype(str)
+            + "_"
+            + df["turn"].astype(str)
+        )
+    else:
+        df["sample_id"] = (
+            "sw0"
+            + df["ID"].str.replace("sw", "", regex=False).str.zfill(5)
+        )
+
 
     return df
