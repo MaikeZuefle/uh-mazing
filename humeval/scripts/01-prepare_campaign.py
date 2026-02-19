@@ -57,9 +57,6 @@ for lang in langs:
     data_out = []
     for item_id, item in data.items():
         median_len = len(sorted(item.values(), key=len)[len(item) // 2])
-        if lang == "ar" and not all(model in item for model in _models):
-            print("Skipping", item_id)
-            continue
         data_out.append(
             [
                 {
