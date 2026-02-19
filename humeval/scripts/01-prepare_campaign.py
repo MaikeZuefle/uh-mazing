@@ -3,6 +3,7 @@ from xml.etree import ElementTree
 import collections
 import os
 import random
+import copy
 
 os.makedirs("humeval/data/campaigns", exist_ok=True)
 langs = ["ar", "cs", "de", "es", "fr", "hi", "it", "zh"]
@@ -68,8 +69,23 @@ for lang in langs:
         )
 
     random.Random(0).shuffle(data_out)
+    data_pre = list(data_out)
     # chunk to size 20
-    data_out = [data_out[i : i + 20] for i in range(0, len(data_out), 20)]
+    data_out = [(f"1..20_r{i}", copy.deepcopy(data_pre[:20])) for i in range(3)]
+    data_out += [
+        (f"{i + 1}..{i + 20 + 1}", copy.deepcopy(data_pre[i : i + 20]))
+        for i in range(20, len(data_pre), 20)
+    ]
+    users = []
+    for user_id, doc in data_out:
+        users.append(
+            {
+                "user_id": user_id,
+                "token_pass": "metaphrast",
+                "token_fail": "oblectation",
+            }
+        )
+    data_out = [b for a, b in data_out]
 
     with open("humeval/data/data_welcome.json", "r") as f:
         data_welcome = json.loads(f.read().replace("LANG2", lang2name[lang]))
@@ -97,6 +113,7 @@ for lang in langs:
                 {"name": "Style preservation", "min": 0, "max": 100, "step": 1},
                 {"name": "Meaning preservation", "min": 0, "max": 100, "step": 1},
             ],
+            "users": users,
             "instructions": """
 We have a speech audio and its translation. The speech audio contains disfluencies, such as "uh," "um," repeated words, self-corrections, etc.
 Your task is to evaluate both:
@@ -134,7 +151,7 @@ Lastly, you will rate the overall quality of the translation in two aspects on a
 Thanks for your help!
 """,
         },
-        "campaign_id": f"uhmazing_v0_{lang}.json",
+        "campaign_id": f"uhmazing_v1_{lang}",
         "data_welcome": data_welcome,
         "data": data_out,
     }

@@ -5,6 +5,10 @@
             "form": null
         },
         {
+            "text": "What is your prolific ID?",
+            "form": "string"
+        },
+        {
             "text": "What is your native language?",
             "form": "string"
         },
@@ -47,11 +51,6 @@
                 "Limited",
                 "Yes"
             ]
-        },
-        {
-            "text": "",
-            "form": "script",
-            "script": "return {\"prolific_id\": new URLSearchParams(window.location.search).get('prolific_id')}"
         }
     ],
     [
