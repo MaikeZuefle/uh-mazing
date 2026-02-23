@@ -21,7 +21,10 @@ for item in data:
         # actual annotation
         # print(item["annotation"][0])
         for model, model_kv in item["annotation"][0].items():
-            error_spans += model_kv["error_spans"]
+            error_spans += [
+                (item["item"][0]["tgt"][model], error)
+                for error in model_kv["error_spans"]
+            ]
             for slider_name, value in model_kv["sliders"].items():
                 data_agg[model][slider_name].append(value)
     else:
@@ -45,5 +48,9 @@ for model in data_agg:
             f"{model:<30} {slider_name:>20} {statistics.mean(vals):.2f} ±{confidence_interval(vals):.2f}"
         )
 
-for error_span in error_spans:
-    print(error_span["severity"], error_span["category"])
+for text, error_span in error_spans:
+    print(
+        error_span["severity"],
+        f"{error_span['category']:>30}",
+        text[error_span["start_i"] : error_span["end_i"]][:50],
+    )
