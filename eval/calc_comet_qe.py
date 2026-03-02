@@ -239,7 +239,7 @@ def evaluate_all_translations(base_dir="generated_output", csv_path="utils_proce
 # ----------------------------
 if __name__ == "__main__":
     evaluate_all_translations(
-        base_dir="generated_output",
-        csv_path="eval/references.csv",
+        base_dir="benchmarking/generated_output",
+        csv_path="translation_data/references.csv",
         output_csv="comet_evaluation_results.csv"
     )   

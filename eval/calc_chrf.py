@@ -265,7 +265,7 @@ def evaluate_all_translations(base_dir="generated_output", references_csv="refer
 # ----------------------------
 if __name__ == "__main__":
     evaluate_all_translations(
-        base_dir="generated_output",
-        references_csv="eval/references.csv",
+        base_dir="benchmarking/generated_output",
+        csv_path="translation_data/references.csv",
         output_csv="chrf_evaluation_results.csv"
     )
