@@ -15,7 +15,6 @@ old
 old/*
 *.wav
 debug_audio
-translation-dataset-with-timestamps.csv
 chrf_evaluation_results.csv
 chrf_results_structured.csv
 comet_evaluation_results.csv
@@ -24,3 +23,4 @@ generated_output_old/
 run_eval.sh
 transform_outputs_for_table.py
 myjob.sh
+benchmarking/generated_output/
