@@ -24,3 +24,4 @@ generated_output_old/
 run_eval.sh
 transform_outputs_for_table.py
 myjob.sh
+benchmarking/generated_output/
