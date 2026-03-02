@@ -2,14 +2,15 @@
 
 # Language dictionary
 declare -A LANGUAGE_DICT=( 
-    ["zh"]="Mandarin"
-    ["es"]="Spanish"
-    ["hi"]="Hindi"
-    ["fr"]="French"
-    ["de"]="German"
-    ["it"]="Italian"
-    ["cs"]="Czech"
-    ["ar"]="Arabic"
+    # ["zh"]="Mandarin"
+    # ["es"]="Spanish"
+    # ["hi"]="Hindi"
+    # ["fr"]="French"
+    # ["de"]="German"
+    # ["it"]="Italian"
+    # ["cs"]="Czech"
+    # ["ar"]="Arabic"
+    ["sw"]="Swahili"
 )
 
 TRG_LANG="en"
