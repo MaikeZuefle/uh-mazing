@@ -105,14 +105,15 @@ def main():
     
     # Language mappings: (lang_code, column_name, output_file)
     languages = [
-        ('ar', 'AR_disfluent', 'generated_output/transcript/gold/audio_ar_ar_standard_gold_output.xml'),
-        ('cs', 'CS_disfluent', 'generated_output/transcript/gold/audio_cs_cs_standard_gold_output.xml'),
-        ('de', 'DE_disfluent', 'generated_output/transcript/gold/audio_de_de_standard_gold_output.xml'),
-        ('es', 'ES_disfluent', 'generated_output/transcript/gold/audio_es_es_standard_gold_output.xml'),
-        ('fr', 'FR_disfluent', 'generated_output/transcript/gold/audio_fr_fr_standard_gold_output.xml'),
-        ('hi', 'HI_disfluent', 'generated_output/transcript/gold/audio_hi_hi_standard_gold_output.xml'),
-        ('it', 'IT_disfluent', 'generated_output/transcript/gold/audio_it_it_standard_gold_output.xml'),
-        ('zh', 'ZH_disfluent', 'generated_output/transcript/gold/audio_zh_zh_standard_gold_output.xml'),
+        # ('ar', 'AR_disfluent', 'generated_output/transcript/gold/audio_ar_ar_standard_gold_output.xml'),
+        # ('cs', 'CS_disfluent', 'generated_output/transcript/gold/audio_cs_cs_standard_gold_output.xml'),
+        # ('de', 'DE_disfluent', 'generated_output/transcript/gold/audio_de_de_standard_gold_output.xml'),
+        # ('es', 'ES_disfluent', 'generated_output/transcript/gold/audio_es_es_standard_gold_output.xml'),
+        # ('fr', 'FR_disfluent', 'generated_output/transcript/gold/audio_fr_fr_standard_gold_output.xml'),
+        # ('hi', 'HI_disfluent', 'generated_output/transcript/gold/audio_hi_hi_standard_gold_output.xml'),
+        # ('it', 'IT_disfluent', 'generated_output/transcript/gold/audio_it_it_standard_gold_output.xml'),
+        # ('zh', 'ZH_disfluent', 'generated_output/transcript/gold/audio_zh_zh_standard_gold_output.xml'),
+        ('sw', 'SW_disfluent', 'generated_output/transcript/gold/audio_sw_sw_standard_gold_output.xml'),
     ]
     
     for lang_code, column_name, output_file in languages:
