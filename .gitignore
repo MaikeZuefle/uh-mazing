@@ -15,7 +15,6 @@ old
 old/*
 *.wav
 debug_audio
-translation-dataset-with-timestamps.csv
 chrf_evaluation_results.csv
 chrf_results_structured.csv
 comet_evaluation_results.csv
