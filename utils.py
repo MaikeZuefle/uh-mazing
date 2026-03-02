@@ -2,6 +2,9 @@ import xml.etree.ElementTree as ET
 import logging
 import os
 import sys
+import csv
+import re
+
 
 TASK_ATTRIB = ["src_lang", "trg_lang"]
 LANGUAGE_DICT = {
@@ -23,6 +26,18 @@ LANGUAGE_DICT = {
     "lg": "Luganda"
 }
 
+REQUIRED_DISFLUENCY_COLUMNS = [
+    "ID",
+    "EN_fluent",
+    "EN_disfluent",
+    "edited_nodes_only",
+    "intj_only",
+    "prn_only",
+    "edited_intj",
+    "intj_prn",
+    "edited_prn",
+    "edited_prn_intj",
+]
 
 def set_up_logging(output_file_path):
     log_file = output_file_path.replace(".xml", ".log")
@@ -101,5 +116,53 @@ def read_transcript(xml_path):
             sample_id = sample.get("id")
             text = sample.text.strip() if sample.text else ""
             input_data.append([sample_id, text])
+
+    return input_data
+
+
+def read_disfluency_type_transcript(csv_path):
+    input_data = []
+
+    with open(csv_path, newline="", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        # Check required columns
+        missing_cols = [
+            col for col in REQUIRED_DISFLUENCY_COLUMNS
+            if col not in reader.fieldnames
+        ]
+
+        if missing_cols:
+            raise KeyError(
+                f"Missing required columns in CSV: {missing_cols}"
+            )
+
+        for row in reader:
+            sample_id = row["ID"]
+
+            # Store all disfluency variants
+            variants = {
+                col: row[col].strip()
+                for col in REQUIRED_DISFLUENCY_COLUMNS
+                if col != "ID"
+            }
+            for variant_name, variant in variants.items():
+
+
+                # Remove underscores from disfluent text
+                text_clean = variant.replace('_', '')
+                
+                # Remove multiple whitespaces and replace with single space
+                text_clean = re.sub(r'\s+', ' ', text_clean).strip()
+                
+                # Remove whitespace before commas
+                text_clean = re.sub(r'\s+,', ',', text_clean)
+                
+                # Remove whitespace before periods/fullstops
+                text_clean = re.sub(r'\s+\.', '.', text_clean)
+                
+                # Remove whitespace before apostrophes
+                text_clean = re.sub(r"\s+'", "'", text_clean)
+                input_data.append((f"{sample_id}##{variant_name}", text_clean))
 
     return input_data

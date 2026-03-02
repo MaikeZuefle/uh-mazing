@@ -26,7 +26,8 @@ from models.text.tower import generate as generate_tower
 from models.text.tower import load_model as load_tower
 
 
-from utils import set_up_dirs, set_up_logging, write_to_xml, read_transcript, LANGUAGE_DICT
+from utils import set_up_dirs, set_up_logging, write_to_xml, read_transcript, read_disfluency_type_transcript
+from utils import LANGUAGE_DICT, REQUIRED_DISFLUENCY_COLUMNS
 
 set_seed(42)
 
@@ -64,7 +65,10 @@ def load_model(model_name):
     return model, generate_func
 
 
-def main(in_data_folder, out_folder, model, src_lang, trg_lang, modality, prompt):
+def main(in_data_folder, out_folder, model, src_lang, trg_lang, modality, prompt, ablate_disfluencies=False):
+
+
+
 
     # Setting up folders and logging
     output_file_path = set_up_dirs(
@@ -76,6 +80,17 @@ def main(in_data_folder, out_folder, model, src_lang, trg_lang, modality, prompt
     logging.info(
         f"Modality: {modality}, Src Language: {src_lang}, Trg Language: {trg_lang} Prompt: {prompt}, Model: {model}"
     )
+
+    if ablate_disfluencies:
+        if src_lang != "en":
+            raise ValueError("Disfluency ablation is only supported for source language 'en'.")
+
+        if modality != "text":
+            raise ValueError("Disfluency ablation requires modality='text'.")
+        
+        logging.info(
+        f"Ablating over disfluency types!")
+
     logging.info(f"Input folder: {in_data_folder}")
     logging.info(f"Output XML: {output_file_path}")
 
@@ -89,9 +104,13 @@ def main(in_data_folder, out_folder, model, src_lang, trg_lang, modality, prompt
                 if file.endswith(".wav"):
                     input_data.append((file, os.path.join(root, file)))
     elif modality == "text":
-        asr_model = in_data_folder.split("/")[-1]
-        xml_file = in_data_folder + f"/audio_{src_lang}_{src_lang}_standard_{asr_model}_output.xml"
-        input_data = read_transcript(xml_file)
+        if ablate_disfluencies:
+            csv_file = os.path.join(in_data_folder, "uh-mazing-with-node-combos.csv")
+            input_data = read_disfluency_type_transcript(csv_file)
+        else:
+            asr_model = in_data_folder.split("/")[-1]
+            xml_file = in_data_folder + f"/audio_{src_lang}_{src_lang}_standard_{asr_model}_output.xml"
+            input_data = read_transcript(xml_file)
     else:
         raise NotImplementedError
 
@@ -121,10 +140,10 @@ def main(in_data_folder, out_folder, model, src_lang, trg_lang, modality, prompt
     logging.info(f"Loading Model.")
     model_instance, generate = load_model(model)
 
-
     logging.info(f"Starting Output Generation.")
     outputs = []
 
+    
     for file_name, example_path in tqdm(input_data, desc="Generating Outputs"):
         output = generate(model_instance, instruction, example_path, modality, src_lang=src_lang, trg_lang=trg_lang).strip()
         outputs.append((file_name, output))
@@ -171,6 +190,12 @@ if __name__ == "__main__":
         "--prompt", choices=PROMPT, default=PROMPT[0], help="Prompt type"
     )
     parser.add_argument("--model", choices=MODELS, default=MODELS[0], help="Model type")
+
+    parser.add_argument(
+        "--ablate_disfluencies",
+        action="store_true",
+        help="If set, will generate outputs for different disfluency inputs."
+    )
     parser.add_argument(
         "--in_data_folder",
         default="debug_audio",
@@ -190,6 +215,7 @@ if __name__ == "__main__":
         trg_lang=args.trg_lang,
         modality=args.modality,
         prompt=args.prompt,
+        ablate_disfluencies=args.ablate_disfluencies,
     )
 
     # python main.py --lang de --modality audio --prompt standard --model qwen_omni
