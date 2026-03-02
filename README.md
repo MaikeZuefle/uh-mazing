@@ -1,21 +1,24 @@
-# disfuent-mt
+# Uh-Mazing Translations
 
-## env stuff
+## Environment Stuff
 ```
 conda create -n disfuent-mt python=3.10 pip ipykernel
 conda env export -n disfuent-mt > disfuent-mt-environment.yml
 ``` 
 
-## how to run inference
+## Run inference
 
-Each experiment runs with the following parameters:
+Cd into the `benchmarking` folder.
+
+Experiments can then be started using the following command:
+
 ```bash
 python main.py \
   --src_lang [language_code] \ # supported languages below
   --trg_lang [language_code] \ # supported languages below
   --modality [modality] \ # text or audio
   --prompt [prompt_type] \ # standard or disfluency_aware
-  --model [model_name] \ # phi_multimodal, qwen_omni, llama, tower, whisper, canary
+  --model [model_name] \ # phi_multimodal, qwen_omni, llama, tower, osm, canary
   --in_data_folder your_input_folder_name \ # input folder contains .wav files
   --out_folder generated_output/your_output_folder_name \
   --ablate_disfluencies # if set ablates over different disfluency types, only possible with English text as source
