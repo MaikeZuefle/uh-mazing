@@ -1,10 +1,40 @@
 import pandas as pd
 import xml.etree.ElementTree as ET
-from jiwer import wer, Compose, ToLowerCase, RemovePunctuation, RemoveMultipleSpaces, Strip, ExpandCommonEnglishContractions
+import re
+from jiwer import Compose, RemoveMultipleSpaces, Strip
 normalizer = Compose([
     RemoveMultipleSpaces(),
     Strip()
 ])
+
+
+LANG_COLUMN_MAP = {
+    'ar': 'AR_disfluent',
+    'cs': 'CS_disfluent',
+    'de': 'DE_disfluent',
+    'es': 'ES_disfluent',
+    'fr': 'FR_disfluent',
+    'hi': 'HI_disfluent',
+    'it': 'IT_disfluent',
+    'zh': 'ZH_disfluent',
+    'sw': 'SW_disfluent',
+    'lg': 'LG_disfluent',
+    'en': 'EN_disfluent'  
+}
+MODEL_TYPES = ["canary_cascaded", "end2end", "gold_cascaded", "speechllm", "whisper_cascaded"]
+
+REQUIRED_DISFLUENCY_COLUMNS = [
+    "ID",
+    "EN_fluent",
+    "EN_disfluent",
+    "edited_nodes_only",
+    "intj_only",
+    "prn_only",
+    "edited_intj",
+    "intj_prn",
+    "edited_prn",
+    "edited_prn_intj",
+]
 
 def clean_disfluency_text(text: str) -> str:
     """
@@ -13,9 +43,7 @@ def clean_disfluency_text(text: str) -> str:
     """
     return normalizer(text.replace("_", "").replace("ـ", ""))
 
-# ----------------------------
-# Load XML hypothesis
-# ----------------------------
+
 def load_xml_hypotheses(xml_path):
     """
     Returns dict: {sample_id_without_ext: hypothesis_text}
@@ -30,9 +58,7 @@ def load_xml_hypotheses(xml_path):
 
     return hyps
 
-# ----------------------------
-# Load CSV references
-# ----------------------------
+
 def load_csv_references(csv_path):
     """
     Adds a sample_id column matching XML IDs:
@@ -57,3 +83,26 @@ def load_csv_references(csv_path):
 
 
     return df
+
+
+
+def extract_language_from_filename(filename):
+    # en→x
+    match = re.search(r'_en_([a-z]{2})_', filename)
+    if match:
+        return ("en", match.group(1))
+    
+    # x→en 
+    match = re.search(r'_([a-z]{2})_en_', filename)
+    if match:
+        return (match.group(1), "en")
+    
+    return (None, None)
+
+
+def extract_prompt_type_from_filename(filename):
+    if "disfluency_aware" in filename:
+        return "disfluency_aware"
+    elif "standard" in filename:
+        return "standard"
+    return None

@@ -2,64 +2,28 @@ import os
 import pandas as pd
 import re
 from sacrebleu.metrics import CHRF
-from utils import load_xml_hypotheses, clean_disfluency_text
+from utils import load_xml_hypotheses, clean_disfluency_text, extract_language_from_filename, extract_prompt_type_from_filename
+from utils import LANG_COLUMN_MAP, MODEL_TYPES
 
-# ----------------------------
-# Initialize CHRF++ metric
-# ----------------------------
+
 def init_chrf():
-    """Initialize CHRF++ metric."""
-    # CHRF++ uses word n-grams in addition to character n-grams
     return CHRF(word_order=2)  # word_order=2 enables CHRF++
 
-# ----------------------------
-# Compute CHRF++ scores
-# ----------------------------
 def compute_chrf_scores(references_csv, xml_path, source_lang, target_lang):
-    """
-    Compute CHRF++ scores.
-    
-    Args:
-        references_csv: Path to CSV with reference translations
-        xml_path: Path to XML with translations (hypotheses)
-        source_lang: Source language code (e.g., 'en', 'de')
-        target_lang: Target language code (e.g., 'de', 'en')
-    
-    Returns:
-        CHRF++ score (float) or None if no valid samples
-    """
-    # Load references
+
     refs_df = pd.read_csv(references_csv)
-    
-    # Load hypotheses
     hyps_dict = load_xml_hypotheses(xml_path)
     
-    # Language code mapping to column names (for x→en and en→x)
-    lang_column_map = {
-        'ar': 'AR_disfluent',
-        'cs': 'CS_disfluent',
-        'de': 'DE_disfluent',
-        'es': 'ES_disfluent',
-        'fr': 'FR_disfluent',
-        'hi': 'HI_disfluent',
-        'it': 'IT_disfluent',
-        'zh': 'ZH_disfluent',
-        'sw': 'SW_disfluent',
-        'lg': 'LG_disfluent',
-        'en': 'EN_disfluent'  # Added for x→en translations
-    }
-
-    if target_lang not in lang_column_map:
+    if target_lang not in LANG_COLUMN_MAP:
         print(f"Warning: Target language {target_lang} not found in reference columns")
         return None
     
-    ref_column = lang_column_map[target_lang]
+    ref_column = LANG_COLUMN_MAP[target_lang]
     
     if ref_column not in refs_df.columns:
         print(f"Warning: Column {ref_column} not found in references CSV")
         return None
     
-    # Prepare references and hypotheses
     references = []
     hypotheses = []
     
@@ -68,7 +32,6 @@ def compute_chrf_scores(references_csv, xml_path, source_lang, target_lang):
         sample_id = sample_id.split("sw")[-1]
         sample_id = f"sw0{sample_id}"
 
-        
         ref_text = clean_disfluency_text(row[ref_column])
 
         if sample_id not in hyps_dict:
@@ -85,67 +48,13 @@ def compute_chrf_scores(references_csv, xml_path, source_lang, target_lang):
     if not references:
         return None
     
-    # Compute CHRF++
     chrf = init_chrf()
-    score = chrf.corpus_score(hypotheses, [references])
-    
-    return score.score
+    return chrf.corpus_score(hypotheses, [references]).score
 
-# ----------------------------
-# Extract language pair from filename
-# ----------------------------
-def extract_language_from_filename(filename):
-    """
-    Extract source and target language codes from filename.
-    Expected formats:
-    - en→x: *_en_LANG_*_output.xml (e.g., text_en_de_standard_llama_output.xml)
-    - x→en: *_LANG_en_*_output.xml (e.g., text_de_en_standard_llama_output.xml)
-    
-    Returns:
-        tuple: (source_lang, target_lang) or (None, None) if not found
-    """
-    # Try en→x pattern first
-    match = re.search(r'_en_([a-z]{2})_', filename)
-    if match:
-        return ("en", match.group(1))
-    
-    # Try x→en pattern
-    match = re.search(r'_([a-z]{2})_en_', filename)
-    if match:
-        return (match.group(1), "en")
-    
-    return (None, None)
 
-# ----------------------------
-# Extract prompt type from filename
-# ----------------------------
-def extract_prompt_type_from_filename(filename):
-    """
-    Extract prompt type from filename.
-    Expected format: *_PROMPT_TYPE_*_output.xml
-    Example: text_en_de_standard_llama_output.xml -> standard
-    Example: text_en_de_disfluency_aware_llama_output.xml -> disfluency_aware
-    """
-    if "disfluency_aware" in filename:
-        return "disfluency_aware"
-    elif "standard" in filename:
-        return "standard"
-    return None
 
-# ----------------------------
-# Main evaluation loop
-# ----------------------------
+
 def evaluate_all_translations(base_dir="generated_output", references_csv="references.csv", output_csv="chrf_evaluation_results.csv"):
-    """
-    Evaluate all translation XML files in the directory structure using CHRF++.
-    Writes results incrementally to CSV after each evaluation.
-    
-    Args:
-        base_dir: Base directory containing model_type folders
-        references_csv: Path to CSV with reference translations
-        output_csv: Output CSV file path
-    """
-    print("Using CHRF++ metric...")
     
     # Check if output file exists to avoid re-evaluating
     if os.path.exists(output_csv):
@@ -161,10 +70,7 @@ def evaluate_all_translations(base_dir="generated_output", references_csv="refer
     
     results_count = 0
     
-    # Iterate through model_type folders (first level)
-    model_types = ["canary_cascaded", "end2end", "gold_cascaded", "speechllm", "whisper_cascaded"]
-    
-    for model_type in model_types:
+    for model_type in MODEL_TYPES:
         model_type_path = os.path.join(base_dir, model_type)
         
         if not os.path.exists(model_type_path):
@@ -260,12 +166,10 @@ def evaluate_all_translations(base_dir="generated_output", references_csv="refer
     else:
         print("\nNo results to save.")
 
-# ----------------------------
-# Example usage
-# ----------------------------
+
 if __name__ == "__main__":
     evaluate_all_translations(
-        base_dir="benchmarking/generated_output",
-        csv_path="translation_data/references.csv",
-        output_csv="chrf_evaluation_results.csv"
+        base_dir="generated_output",
+        references_csv="translation_data/references.csv",
+        output_csv="eval/results_non_commercial/chrf_evaluation_results.csv"
     )

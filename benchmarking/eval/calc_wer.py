@@ -1,11 +1,7 @@
-import pandas as pd
-import xml.etree.ElementTree as ET
 from jiwer import wer, Compose, ToLowerCase, RemovePunctuation, RemoveMultipleSpaces, Strip, ExpandCommonEnglishContractions
 from utils import load_csv_references, load_xml_hypotheses, clean_disfluency_text
 
-# ----------------------------
-# Text normalization
-# ----------------------------
+
 normalizer = Compose([
     ToLowerCase(),
     ExpandCommonEnglishContractions(),
@@ -14,11 +10,6 @@ normalizer = Compose([
     Strip()
 ])
 
-
-
-# ----------------------------
-# Compute WERs
-# ----------------------------
 def compute_wers(csv_path, xml_path):
     refs_df = load_csv_references(csv_path)  # CSV is reference
     hyps_dict = load_xml_hypotheses(xml_path)  # XML is hypothesis
@@ -48,9 +39,7 @@ def compute_wers(csv_path, xml_path):
         "num_samples": len(fluent_wers)
     }
 
-# ----------------------------
-# Example usage
-# ----------------------------
+
 if __name__ == "__main__":
     results = compute_wers(
         csv_path="translation_data/translation-dataset-with-timestamps.csv",
