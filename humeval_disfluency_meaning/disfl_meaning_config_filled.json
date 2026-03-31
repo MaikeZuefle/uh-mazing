@@ -12,11 +12,7 @@
       }
     ],
     "instructions": "<ul><li>Listen to the audio or read the transcript below. Identify the emotions the speaker themselves is conveying.</li><li>Focus on <b>how the speaker feels</b>, not on the topic they are describing.</li><li>Provide up to 5 emotions and rate the intensity of each on a scale from 0 (not intense) to 5 (very intense).</li><li>Example: The utterance <i style=\"background-color: lightgray\">I, uh, I don't know, I just, I really wish they would, you know, just listen to me.</i> could reflect the speaker's emotion <b>frustration</b> with moderate intensity (3) or <b>helplessness</b> with low intensity (2).</li></ul> <style>.output_src { width: 600px; } .output_item { display: block; } .output_tgt { display: none; }  .output_textfield { display: block; resize: none; width: 600px; min-height: inherit; height: 1.5em; position: relative; top: -20px; } .output_response { width: 600px; margin-top: 30px; } .output_candidate { display: block; } .slider_container { position: relative; top: 60px; } .output_scrollable { display: block; } #instructions_global { font-size: 14pt !important; width: calc(100% - 200px) !important; margin-right: 10px; } #instructions_global > ul > li { margin-top: 20px; }</style> <script defer src='https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js'></script> <script defer>setTimeout(() => { $('input[type=\"range\"]').trigger('click');}, 50);</script>",
-    "shuffle": false,
-    "assets": {
-      "source": "preprocessed_audio_switchboard/",
-      "destination": "assets/translation_dataset_audio_preprocessed/"
-    }
+    "shuffle": false
   },
   "campaign_id": "uh-mazing_disfluency_meaning",
   "data": [
