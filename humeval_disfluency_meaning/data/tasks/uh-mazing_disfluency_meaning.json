@@ -2,7 +2,7 @@
   "info": {
     "assignment": "task-based",
     "protocol": "DA",
-    "textfield": "visible",
+    "textfield": "prefilled",
     "sliders": [
       {
         "name": "Intensity",
@@ -11,17 +11,19 @@
         "step": 1
       }
     ],
-    "instructions": "Listen to the audio or read the transcript below. Identify the emotions the speaker themselves is conveying. Focus on <b>how the speaker feels</b>, not on the topic they are describing.<ul><li>Provide up to 5 emotions and rate the intensity of each on a scale from 0 (not intense) to 5 (very intense).</li><li>If you use fewer than 5 fields, set the slider to 0 for any unused fields.</li></ul><i>Example: the utterance 'I, uh, I don't know, I just, I really wish they would, you know, just listen to me.' could reflect the speaker's emotion <b>frustration</b> with moderate intensity (3) or <b>helplessness</b> with low intensity (2).</i> <style>.output_src { width: 600px; } .output_item { display: block; } .output_tgt { display: none; }  .output_textfield { display: block; resize: none; width: 600px; min-height: inherit; height: 1.5em; position: relative; top: -20px; } .output_response { width: 600px; margin-top: 30px; } .output_candidate { display: block; } .slider_container { position: relative; top: 60px; }</style>"
+    "instructions": "Listen to the audio or read the transcript below. Identify the emotions the speaker themselves is conveying. Focus on <b>how the speaker feels</b>, not on the topic they are describing.<ul><li>Provide up to 5 emotions and rate the intensity of each on a scale from 0 (not intense) to 5 (very intense).</li><li>If you use fewer than 5 fields, set the slider to 0 for any unused fields.</li></ul><i>Example: the utterance 'I, uh, I don't know, I just, I really wish they would, you know, just listen to me.' could reflect the speaker's emotion <b>frustration</b> with moderate intensity (3) or <b>helplessness</b> with low intensity (2).</i> <style>.output_src { width: 600px; } .output_item { display: block; } .output_tgt { display: none; }  .output_textfield { display: block; resize: none; width: 600px; min-height: inherit; height: 1.5em; position: relative; top: -20px; } .output_response { width: 600px; margin-top: 30px; } .output_candidate { display: block; } .slider_container { position: relative; top: 60px; } .output_scrollable { display: block; }</style> <script src='https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js'></script> <script>setTimeout(() => { $('input[type=\"range\"]').val(0); $('input[type=\"range\"]').trigger('click');}, 1);</script>",
+    "shuffle": false
   },
   "campaign_id": "uh-mazing_disfluency_meaning",
-  "data": [
-    [
+  "data": {
+    "silly-thickness-046": [
       [
         {
-          "src": "<audio controls src=\"assets/translation_dataset_audio_preprocessed/sw02005_B_2.wav\"></audio><br>",
+          "instructions": "<script>setTimeout(() => { $('#response_0_a_Intensity').val(5); $('#response_0_a_Intensity').trigger('click'); $('#response_0_b_Intensity').val(2); $('#response_0_b_Intensity').trigger('click'); }, 10);</script>",
+          "src": "<audio controls src=\"assets/translation_dataset_audio_preprocessed/sw02005_B_2.wav\"></audio>",
           "tgt": {
-            "a": "",
-            "b": "",
+            "a": "fear",
+            "b": "excitement",
             "c": "",
             "d": "",
             "e": ""
@@ -368,7 +370,7 @@
         }
       ]
     ],
-    [
+    "shivering-patrol-145": [
       [
         {
           "src": "<audio controls src=\"assets/translation_dataset_audio_preprocessed/sw02005_B_4.wav\"></audio><br>",
@@ -721,7 +723,7 @@
         }
       ]
     ],
-    [
+    "sable-heron-645": [
       [
         {
           "src": "<audio controls src=\"assets/translation_dataset_audio_preprocessed/sw02005_B_8.wav\"></audio><br>",
@@ -1061,7 +1063,7 @@
         }
       ]
     ],
-    [
+    "gruesome-creative-972": [
       [
         {
           "src": "Well, of course, it's, you know, it's one of the last few things in the world you'd ever want to do, you know. Unless it's just, you know, really, you know, and, uh, for their, uh, you know, for their own good.",
@@ -1414,7 +1416,7 @@
         }
       ]
     ],
-    [
+    "puzzled-meat-743": [
       [
         {
           "src": "I'd be very very careful and, uh, you know, checking them out. Uh, our, had t-, place my mother in a nursing home. She had a rather massive stroke about, uh, about uh, eight months ago I guess.",
@@ -1767,7 +1769,7 @@
         }
       ]
     ],
-    [
+    "efficient-developing-757": [
       [
         {
           "src": "So, I was very comfortable, you know, in doing it when it got to the point that we had to do it. But there's, well, I had an occasion for my mother-in-law who had fell and needed to be, you know, could not take care of herself anymore, was confined to a nursing home for a while that was really not a very good experience. Uh, it had to be done in a hurry. I mean, we didn't have, you know, like six months to check all of these places out. And it was really not, not very good, uh, deal.",
@@ -2107,7 +2109,7 @@
         }
       ]
     ],
-    [
+    "brief-diving-654": [
       [
         {
           "src": "of course, it's one of the last few things in the world you'd ever want to do Unless it's just really, for their own good.",
@@ -2460,7 +2462,7 @@
         }
       ]
     ],
-    [
+    "willing-consciousness-565": [
       [
         {
           "src": "I'd be very very careful checking them out, our, had t-, place my mother in a nursing home. She had a rather massive stroke, about, eight months ago.",
@@ -2813,7 +2815,7 @@
         }
       ]
     ],
-    [
+    "deranged-nanoparticle-390": [
       [
         {
           "src": "So, I was very comfortable in doing it when it got to the point that we had to do it. But there's, I had an occasion for my mother-in-law who had fell and could not take care of herself anymore, was confined to a nursing home for a while that was really not a very good experience, it had to be done in a hurry. we didn't have six months to check all of these places out. And it was really not very good, deal.",
@@ -3153,5 +3155,6 @@
         }
       ]
     ]
-  ]
+  },
+  "token": "e1ea9bc64b"
 }
