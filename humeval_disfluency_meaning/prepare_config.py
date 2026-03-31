@@ -3,9 +3,9 @@ import json
 import os
 import re
 
-CSV_PATH = "/net/scratch/hscra/plgrid/plgzuefle/disfluent/translation_data/references.csv"
+CSV_PATH = "../translation_data/references.csv"
 AUDIO_DIR = "assets/translation_dataset_audio_preprocessed"
-AUDIO_SRC_DIR = "/net/scratch/hscra/plgrid/plgzuefle/disfluent/translation_data/translation_dataset_audio_preprocessed"
+AUDIO_SRC_DIR = "../translation_data/translation_dataset_audio_preprocessed"
 TEMPLATE_PATH = "disfl_meaning_config.json"
 OUTPUT_PATH = "disfl_meaning_config_filled.json"
 NUM_ANNOTATORS = 9
