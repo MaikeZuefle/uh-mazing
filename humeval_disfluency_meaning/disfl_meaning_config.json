@@ -2,7 +2,7 @@
   "info": {
     "assignment": "task-based",
     "protocol": "DA",
-    "textfield": "visible",
+    "textfield": "prefilled",
     "sliders": [
       {
         "name": "Intensity",
