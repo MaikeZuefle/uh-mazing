@@ -18,11 +18,11 @@
   "data": [
     [
       {
-        "instructions": "<script>setTimeout(() => { $('#response_0_a_Intensity').val(5); $('#response_0_a_Intensity').trigger('click'); $('#response_0_b_Intensity').val(2); $('#response_0_b_Intensity').trigger('click'); }, 10);</script>",
-        "src": "<audio controls src=\"assets/translation_dataset_audio_preprocessed/sw02005_B_2.wav\"></audio>",
+        "instructions": "<script>setTimeout(() => { $('#response_0_a_Intensity').val(3); $('#response_0_a_Intensity').trigger('click'); $('#response_0_b_Intensity').val(2); $('#response_0_b_Intensity').trigger('click'); }, 10);</script>",
+        "src": "I, uh, I don't know, I just, I really wish they would, you know, just listen to me.",
         "tgt": {
-          "a": "fear",
-          "b": "excitement",
+          "a": "frustration",
+          "b": "helplessness",
           "c": "",
           "d": "",
           "e": ""
