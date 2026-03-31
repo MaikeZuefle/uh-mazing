@@ -1,5 +1,7 @@
 # added by zouharvi
 /data
+humeval/data
+humeval_disfluency_meaning/data
 
 # other
 *__pycache__*
