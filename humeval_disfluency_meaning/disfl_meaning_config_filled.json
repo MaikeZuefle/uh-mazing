@@ -11,15 +11,19 @@
         "step": 1
       }
     ],
-    "instructions": "Listen to the audio or read the transcript below. Identify the emotions the speaker themselves is conveying. Focus on <b>how the speaker feels</b>, not on the topic they are describing.<ul><li>Provide up to 5 emotions and rate the intensity of each on a scale from 0 (not intense) to 5 (very intense).</li></ul><b>Example:</b><div style='margin-left: 20px'>The utterance<br><i>'I, uh, I don't know, I just, I really wish they would, you know, just listen to me.'</i><br>could reflect the speaker's emotion <b>frustration</b> with moderate intensity (3) or <b>helplessness</b> with low intensity (2).</div> <style>.output_src { width: 600px; } .output_item { display: block; } .output_tgt { display: none; }  .output_textfield { display: block; resize: none; width: 600px; min-height: inherit; height: 1.5em; position: relative; top: -20px; } .output_response { width: 600px; margin-top: 30px; } .output_candidate { display: block; } .slider_container { position: relative; top: 60px; } .output_scrollable { display: block; }</style> <script src='https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js'></script> <script>setTimeout(() => { $('input[type=\"range\"]').val(0); $('input[type=\"range\"]').trigger('click');}, 1);</script>",
-    "shuffle": false
+    "instructions": "Listen to the audio or read the transcript below. Identify the emotions the speaker themselves is conveying. Focus on <b>how the speaker feels</b>, not on the topic they are describing.<ul><li>Provide up to 5 emotions and rate the intensity of each on a scale from 0 (not intense) to 5 (very intense).</li></ul><b>Example:</b><div style='margin-left: 20px'>The utterance <i style=\"background-color: lightgray\">I, uh, I don't know, I just, I really wish they would, you know, just listen to me.</i> could reflect the speaker's emotion <b>frustration</b> with moderate intensity (3) or <b>helplessness</b> with low intensity (2).</div> <style>.output_src { width: 600px; } .output_item { display: block; } .output_tgt { display: none; }  .output_textfield { display: block; resize: none; width: 600px; min-height: inherit; height: 1.5em; position: relative; top: -20px; } .output_response { width: 600px; margin-top: 30px; } .output_candidate { display: block; } .slider_container { position: relative; top: 60px; } .output_scrollable { display: block; } #instructions_global { font-size: 14pt; } </style> <script defer src='https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js'></script> <script defer>setTimeout(() => { $('input[type=\"range\"]').trigger('click');}, 50);</script>",
+    "shuffle": false,
+    "assets": {
+      "source": "preprocessed_audio_switchboard/",
+      "destination": "assets/translation_dataset_audio_preprocessed/"
+    }
   },
   "campaign_id": "uh-mazing_disfluency_meaning",
   "data": [
     [
       [
         {
-          "instructions": "<script>setTimeout(() => { $('#response_0_a_Intensity').val(3); $('#response_0_a_Intensity').trigger('click'); $('#response_0_b_Intensity').val(2); $('#response_0_b_Intensity').trigger('click'); }, 10);</script>",
+          "instructions": "<script>setTimeout(() => { $('#response_0_a_Intensity').val(3); $('#response_0_a_Intensity').trigger('click'); $('#response_0_b_Intensity').val(2); $('#response_0_b_Intensity').trigger('click'); }, 100);</script>",
           "src": "I, uh, I don't know, I just, I really wish they would, you know, just listen to me.",
           "tgt": {
             "a": "frustration",
