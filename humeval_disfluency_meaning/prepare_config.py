@@ -8,7 +8,7 @@ AUDIO_DIR = "assets/translation_dataset_audio_preprocessed"
 AUDIO_SRC_DIR = "../translation_data/translation_dataset_audio_preprocessed"
 TEMPLATE_PATH = "disfl_meaning_config.json"
 OUTPUT_PATH = "disfl_meaning_config_filled.json"
-NUM_ANNOTATORS = 9
+NUM_ANNOTATORS = 18
 
 
 def csv_id_to_audio_filename(csv_id):
@@ -39,6 +39,9 @@ def make_item(src, item_id):
 
 
 def main():
+    if NUM_ANNOTATORS % 9 != 0:
+        raise ValueError(f"NUM_ANNOTATORS must be a multiple of 9, got {NUM_ANNOTATORS}")
+
     with open(TEMPLATE_PATH) as f:
         config = json.load(f)
 
@@ -64,34 +67,39 @@ def main():
     # Fixed example item shown first to all annotators (taken from template)
     example_item = config["data"][0][0]
 
-    # Build per-annotator item lists (mixed modalities):
-    # Samples split into 3 groups; modality assignments rotate across annotator groups:
-    #   Annotators 0-2: group0=audio,  group1=disfluent, group2=fluent
-    #   Annotators 3-5: group0=disfluent, group1=fluent, group2=audio
-    #   Annotators 6-8: group0=fluent,  group1=audio,  group2=disfluent
-    # Each sample seen by 9 people total (3 per modality); each annotator sees all 3 modalities.
-    n = len(samples)
-    # sample group: 0 if i < n//3, 1 if i < 2*n//3, else 2
+    # Design: NUM_ANNOTATORS // 9 replica groups, each of 9 annotators.
+    # Each replica handles a separate chunk of samples using a 3x3 mixed modality design:
+    #   Annotator sub-groups 0,1,2 (3 each) × sample sub-groups 0,1,2 → Latin square modality rotation.
+    # Result: each sample seen by 3 annotators per modality (9 total), each annotator sees all 3 modalities.
+    num_replicas = NUM_ANNOTATORS // 9
     modality_matrix = [
-        ["audio",     "disfluent", "fluent"],    # annotator group 0 (0,1,2)
-        ["disfluent", "fluent",    "audio"],      # annotator group 1 (3,4,5)
-        ["fluent",    "audio",     "disfluent"],  # annotator group 2 (6,7,8)
+        ["audio",     "disfluent", "fluent"],
+        ["disfluent", "fluent",    "audio"],
+        ["fluent",    "audio",     "disfluent"],
     ]
+    suffix_map = {"audio": "audio", "disfluent": "disfluent_transcript", "fluent": "fluent_transcript"}
 
     annotator_items = [[example_item] for _ in range(NUM_ANNOTATORS)]
 
-    for i, (csv_id, audio_src, disfluent, fluent) in enumerate(samples):
-        item_id = i + 1
-        sample_group = 0 if i < n // 3 else (1 if i < 2 * n // 3 else 2)
-        src_map = {"audio": audio_src, "disfluent": disfluent, "fluent": fluent}
-        suffix_map = {"audio": "audio", "disfluent": "disfluent_transcript", "fluent": "fluent_transcript"}
+    for r in range(num_replicas):
+        # Samples assigned to this replica
+        start = r * len(samples) // num_replicas
+        end = (r + 1) * len(samples) // num_replicas if r < num_replicas - 1 else len(samples)
+        replica_samples = samples[start:end]
+        n_r = len(replica_samples)
+        base_a = r * 9  # first annotator index in this replica
 
-        for ag in range(3):  # annotator group
-            modality = modality_matrix[ag][sample_group]
-            src = src_map[modality]
-            suffix = suffix_map[modality]
-            for a in range(ag * 3, ag * 3 + 3):
-                annotator_items[a].append(make_item(src, f"{item_id}_{suffix}"))
+        for i, (csv_id, audio_src, disfluent, fluent) in enumerate(replica_samples):
+            item_id = start + i + 1  # global 1-based item id
+            sample_group = 0 if i < n_r // 3 else (1 if i < 2 * n_r // 3 else 2)
+            src_map = {"audio": audio_src, "disfluent": disfluent, "fluent": fluent}
+
+            for ag in range(3):  # annotator sub-group within replica
+                modality = modality_matrix[ag][sample_group]
+                src = src_map[modality]
+                suffix = suffix_map[modality]
+                for a in range(base_a + ag * 3, base_a + ag * 3 + 3):
+                    annotator_items[a].append(make_item(src, f"{item_id}_{suffix}"))
 
     # task-based format: data[annotator][document][item]
     # each item is its own document (single-item document)
