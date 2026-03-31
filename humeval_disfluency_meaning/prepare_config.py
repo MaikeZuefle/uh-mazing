@@ -61,21 +61,37 @@ def main():
             audio_src = f'<audio controls src="{AUDIO_DIR}/{audio_filename}"></audio><br>'
             samples.append((csv_id, audio_src, disfluent, fluent))
 
-    # Build per-annotator item lists using rotation:
-    # sample i -> audio to annotator i%9, disfluent to (i+3)%9, fluent to (i+6)%9
-    annotator_items = [[] for _ in range(NUM_ANNOTATORS)]
+    # Fixed example item shown first to all annotators (taken from template)
+    example_item = config["data"][0][0]
+
+    # Build per-annotator item lists (mixed modalities):
+    # Samples split into 3 groups; modality assignments rotate across annotator groups:
+    #   Annotators 0-2: group0=audio,  group1=disfluent, group2=fluent
+    #   Annotators 3-5: group0=disfluent, group1=fluent, group2=audio
+    #   Annotators 6-8: group0=fluent,  group1=audio,  group2=disfluent
+    # Each sample seen by 9 people total (3 per modality); each annotator sees all 3 modalities.
+    n = len(samples)
+    # sample group: 0 if i < n//3, 1 if i < 2*n//3, else 2
+    modality_matrix = [
+        ["audio",     "disfluent", "fluent"],    # annotator group 0 (0,1,2)
+        ["disfluent", "fluent",    "audio"],      # annotator group 1 (3,4,5)
+        ["fluent",    "audio",     "disfluent"],  # annotator group 2 (6,7,8)
+    ]
+
+    annotator_items = [[example_item] for _ in range(NUM_ANNOTATORS)]
 
     for i, (csv_id, audio_src, disfluent, fluent) in enumerate(samples):
         item_id = i + 1
-        annotator_items[i % NUM_ANNOTATORS].append(
-            make_item(audio_src, f"{item_id}_audio")
-        )
-        annotator_items[(i + 3) % NUM_ANNOTATORS].append(
-            make_item(disfluent, f"{item_id}_disfluent_transcript")
-        )
-        annotator_items[(i + 6) % NUM_ANNOTATORS].append(
-            make_item(fluent, f"{item_id}_fluent_transcript")
-        )
+        sample_group = 0 if i < n // 3 else (1 if i < 2 * n // 3 else 2)
+        src_map = {"audio": audio_src, "disfluent": disfluent, "fluent": fluent}
+        suffix_map = {"audio": "audio", "disfluent": "disfluent_transcript", "fluent": "fluent_transcript"}
+
+        for ag in range(3):  # annotator group
+            modality = modality_matrix[ag][sample_group]
+            src = src_map[modality]
+            suffix = suffix_map[modality]
+            for a in range(ag * 3, ag * 3 + 3):
+                annotator_items[a].append(make_item(src, f"{item_id}_{suffix}"))
 
     # task-based format: data[annotator][document][item]
     # each item is its own document (single-item document)
@@ -91,7 +107,9 @@ def main():
         modality_counts = {"audio": 0, "disfluent": 0, "fluent": 0}
         for item in items:
             iid = item["item_id"]
-            if iid.endswith("_audio"):
+            if iid == "example":
+                pass
+            elif iid.endswith("_audio"):
                 modality_counts["audio"] += 1
             elif iid.endswith("_disfluent_transcript"):
                 modality_counts["disfluent"] += 1
