@@ -14,9 +14,4 @@ python eval/eval_node_combos.py \
     --references "$REFERENCES" \
     --output "$OUTPUT"
 
-# OUTPUT_TABLE="${OUTPUT%.csv}_table.csv"
 
-# python eval/transform_scores_for_table.py \
-#     --input "$OUTPUT" \
-#     --output "$OUTPUT_TABLE" \
-#     --metric comet
