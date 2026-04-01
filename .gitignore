@@ -26,3 +26,6 @@ run_eval.sh
 transform_outputs_for_table.py
 myjob.sh
 benchmarking/generated_output/
+requirements_canary.txt
+requirements_phi.txt
+.claude
