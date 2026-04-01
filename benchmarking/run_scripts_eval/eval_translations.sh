@@ -1,7 +1,7 @@
 #!/bin/bash
 
 INPUT=generated_output # folder with model subfolders
-REFERENCES=translation_data/references.csv
+REFERENCES=../translation_data/references.csv
 OUTPUT=results/translations/evaluation_results.csv
 
 cd "$(dirname "$0")/.." || exit 1

@@ -28,6 +28,7 @@ def prepare_data_xml(csv_path, xml_path, source_lang, target_lang):
 
     ref_column = LANG_COLUMN_MAP[target_lang]
     if ref_column not in refs_df.columns:
+        breakpoint()
         raise ValueError(f"Reference column '{ref_column}' not found in CSV")
 
     src_column = f"{source_lang.upper()}_disfluent"
@@ -105,7 +106,9 @@ def prepare_data_csv(df, csv_path, model, lang_code):
 
         raw_hyp = row[hyp_column]
         if pd.isna(raw_hyp):
-            raise ValueError(f"Empty hypothesis for lang {lang_code} in {csv_path}")
+            raw_hyp = ""
+            print(f"Empty hypothesis for lang {lang_code} in {csv_path}")
+            # raise ValueError(f"Empty hypothesis for lang {lang_code} in {csv_path}")
         hypotheses.append(str(raw_hyp))
 
         if has_reference:
@@ -175,82 +178,87 @@ def evaluate_all_translations(base_dir, csv_path, output_csv):
                 print(f"  Processing model: {model_name}")
 
                 for filename in os.listdir(entry_path):
-                    if not filename.endswith(".xml"):
-                        raise ValueError(f"Unexpected file type in {entry_path}: {filename}")
-
-                    source_lang, target_lang, prompt_type = parse_xml_filename(filename)
-
-                    eval_key = make_eval_key(model_type, model_name, filename, target_lang)
-                    if eval_key in evaluated_keys:
-                        print(f"    Skipping {filename} (already evaluated)")
+                    if filename.endswith(".log"):
                         continue
+                    elif filename.endswith(".xml"):
+                        source_lang, target_lang, prompt_type = parse_xml_filename(filename)
+                        if target_lang == "lg":
+                            continue # excluded from experiments
 
-                    print(f"    Evaluating {filename} (lang: {source_lang}→{target_lang}, prompt: {prompt_type})")
+                        eval_key = make_eval_key(model_type, model_name, filename, target_lang)
+                        if eval_key in evaluated_keys:
+                            print(f"    Skipping {filename} (already evaluated)")
+                            continue
 
-                    sources, hypotheses, references = prepare_data_xml(
-                        csv_path, os.path.join(entry_path, filename), source_lang, target_lang
-                    )
-                    chrf_score = compute_chrf(hypotheses, references)
-                    comet_score = compute_comet_qe(comet_model, sources, hypotheses)
+                        print(f"    Evaluating {filename} (lang: {source_lang}→{target_lang}, prompt: {prompt_type})")
 
-                    append_result(output_csv, {
-                        "model_type": model_type,
-                        "model": model_name,
-                        "modality": "",
-                        "source_lang": source_lang,
-                        "target_lang": target_lang,
-                        "lang_pair": f"{source_lang}-{target_lang}",
-                        "prompt_type": prompt_type,
-                        "chrf_score": chrf_score,
-                        "comet_score": comet_score,
-                        "filename": filename,
-                    })
-                    evaluated_keys.add(eval_key)
-                    results_count += 1
-                    print(f"      CHRF++ score: {chrf_score:.4f}, COMET QE score: {comet_score:.4f}")
-
-            elif entry.endswith(".csv"):
-                # Commercial: entry is a flat CSV file (uh-mazing_*.csv)
-                filename = entry
-                commercial_model, modality, prompt_output = parse_commercial_filename(filename)
-                print(f"  Processing commercial file: {filename} (model={commercial_model}, modality={modality})")
-                commercial_df = pd.read_csv(entry_path)
-
-                for lang_code in COMMERCIAL_LANG_CODES:
-                    target_lang = COMMERCIAL_LANG_CODE_MAP.get(lang_code, lang_code.lower())
-                    eval_key = make_eval_key(model_type, commercial_model, filename, target_lang)
-                    if eval_key in evaluated_keys:
-                        print(f"    Skipping {lang_code} in {filename} (already evaluated)")
-                        continue
-
-                    sources, hypotheses, references = prepare_data_csv(commercial_df, entry_path, commercial_model, lang_code)
-
-                    chrf_score = None
-                    if references is not None:
+                        sources, hypotheses, references = prepare_data_xml(
+                            csv_path, os.path.join(entry_path, filename), source_lang, target_lang
+                        )
                         chrf_score = compute_chrf(hypotheses, references)
+                        comet_score = compute_comet_qe(comet_model, sources, hypotheses)
 
-                    comet_score = compute_comet_qe(comet_model, sources, hypotheses)
+                        append_result(output_csv, {
+                            "model_type": model_type,
+                            "model": model_name,
+                            "modality": "",
+                            "source_lang": source_lang,
+                            "target_lang": target_lang,
+                            "lang_pair": f"{source_lang}-{target_lang}",
+                            "prompt_type": prompt_type,
+                            "chrf_score": chrf_score,
+                            "comet_score": comet_score,
+                            "filename": filename,
+                        })
+                        evaluated_keys.add(eval_key)
+                        results_count += 1
+                        print(f"      CHRF++ score: {chrf_score:.4f}, COMET QE score: {comet_score:.4f}")
 
-                    chrf_str = f"{chrf_score:.4f}" if chrf_score is not None else "N/A"
-                    print(f"    {lang_code}: CHRF++ = {chrf_str}, COMET QE = {comet_score:.4f}")
-
-                    append_result(output_csv, {
-                        "model_type": model_type,
-                        "model": commercial_model,
-                        "modality": modality,
-                        "source_lang": "en",
-                        "target_lang": target_lang,
-                        "lang_pair": f"en-{target_lang}",
-                        "prompt_type": prompt_output,
-                        "chrf_score": chrf_score,
-                        "comet_score": comet_score,
-                        "filename": filename,
-                    })
-                    evaluated_keys.add(eval_key)
-                    results_count += 1
-
+                    else: 
+                        raise ValueError(f"Unexpected file type in {entry_path}: {filename}")
             else:
-                raise ValueError(f"Unexpected entry in {model_type_path}: {entry}")
+                if entry_path.endswith(".csv"):
+                    # Commercial: entry is a flat CSV file (uh-mazing_*.csv)
+                    filename = entry
+                    commercial_model, modality, prompt_output = parse_commercial_filename(filename)
+                    print(f"  Processing commercial file: {filename} (model={commercial_model}, modality={modality})")
+                    commercial_df = pd.read_csv(entry_path)
+
+                    for lang_code in COMMERCIAL_LANG_CODES:
+                        target_lang = COMMERCIAL_LANG_CODE_MAP.get(lang_code, lang_code.lower())
+                        eval_key = make_eval_key(model_type, commercial_model, filename, target_lang)
+                        if eval_key in evaluated_keys:
+                            print(f"    Skipping {lang_code} in {filename} (already evaluated)")
+                            continue
+
+                        sources, hypotheses, references = prepare_data_csv(commercial_df, entry_path, commercial_model, lang_code)
+
+                        chrf_score = None
+                        if references is not None:
+                            chrf_score = compute_chrf(hypotheses, references)
+
+                        comet_score = compute_comet_qe(comet_model, sources, hypotheses)
+
+                        chrf_str = f"{chrf_score:.4f}" if chrf_score is not None else "N/A"
+                        print(f"    {lang_code}: CHRF++ = {chrf_str}, COMET QE = {comet_score:.4f}")
+
+                        append_result(output_csv, {
+                            "model_type": model_type,
+                            "model": commercial_model,
+                            "modality": modality,
+                            "source_lang": "en",
+                            "target_lang": target_lang,
+                            "lang_pair": f"en-{target_lang}",
+                            "prompt_type": prompt_output,
+                            "chrf_score": chrf_score,
+                            "comet_score": comet_score,
+                            "filename": filename,
+                        })
+                        evaluated_keys.add(eval_key)
+                        results_count += 1
+                else: 
+                    raise ValueError(f"Unexpected file type in {entry_path}: {filename}")
+
 
     if results_count > 0 or os.path.exists(output_csv):
         print(f"\n{'='*60}")

@@ -20,7 +20,6 @@ LANG_COLUMN_MAP = {
     'it': 'IT_disfluent',
     'zh': 'ZH_disfluent',
     'sw': 'SW_disfluent',
-    'lg': 'LG_disfluent',
     'en': 'EN_disfluent'  
 }
 MODEL_TYPES = ["canary_cascaded", "end2end", "gold_cascaded", "speechllm", "whisper_cascaded", "commercial_models"]
