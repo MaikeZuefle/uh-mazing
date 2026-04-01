@@ -6,7 +6,7 @@ from utils import load_xml_hypotheses, clean_disfluency_text
 from utils import load_comet_model, append_result, parse_xml_filename
 from utils import REQUIRED_DISFLUENCY_COLUMNS, COMMERCIAL_DISFLUENCY_TYPES, COMMERCIAL_PROMPT_TYPES, COMMERCIAL_LANG_CODE_MAP
 
-MODEL_TYPES = ["analysis_node_combos"]
+MODEL_TYPES = ["commercial_models", "llama", "tower"]
 
 
 def parse_csv_filename(filename):
@@ -29,10 +29,13 @@ def parse_csv_filename(filename):
 
 def prepare_comet_data_csv(csv_path, disfluency_type):
     """
-    Returns dict: target_lang -> list of {"src": ..., "mt": ...}
+    Returns (lang_qe_data, missing_entries).
+    lang_qe_data: dict target_lang -> list of {"src": ..., "mt": ...}
+    missing_entries: list of (col, lang, src_text) for rows with empty translations.
     Source text is taken from the disfluency_type column; translations from {LANG}_{model} columns.
     """
     lang_qe_data = defaultdict(list)
+    missing_entries = []
     with open(csv_path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         lang_columns = {
@@ -47,9 +50,10 @@ def prepare_comet_data_csv(csv_path, disfluency_type):
             for col, lang in lang_columns.items():
                 mt_text = row[col].strip()
                 if not mt_text:
-                    raise ValueError(f"Empty translation in column '{col}' for row: {dict(row)}")
+                    missing_entries.append((col, lang, f"{row['file']} {row['speaker']} {row['turn']}"))
+                    continue
                 lang_qe_data[lang].append({"src": src_text, "mt": mt_text})
-    return lang_qe_data
+    return lang_qe_data, missing_entries
 
 
 def prepare_comet_data_xml(csv_path, xml_path):
@@ -174,6 +178,7 @@ def evaluate_all_translations(base_dir, csv_path, output_csv):
         evaluated_keys = set()
 
     results_count = 0
+    all_missing = []  # list of (filename, col, lang, src_text)
 
     for model_type in MODEL_TYPES:
         model_type_path = os.path.join(base_dir, model_type)
@@ -182,83 +187,82 @@ def evaluate_all_translations(base_dir, csv_path, output_csv):
 
         print(f"\nProcessing model_type: {model_type}")
 
-        for model_name in os.listdir(model_type_path):
-            model_path = os.path.join(model_type_path, model_name)
-            if not os.path.isdir(model_path):
-                raise NotADirectoryError(f"Expected directory but found file: {model_path}")
+        for filename in sorted(os.listdir(model_type_path)):
+            filepath = os.path.join(model_type_path, filename)
+            if not os.path.isfile(filepath):
+                raise NotADirectoryError(f"Expected file but found directory: {filepath}")
 
-            print(f"  Processing model: {model_name}")
+            if filename.endswith(".xml"):
+                is_commercial = False
+            elif filename.endswith(".csv"):
+                is_commercial = True
+            else:
+                continue  # skip .log and other non-translation files
 
-            for filename in os.listdir(model_path):
-                if filename.endswith(".xml"):
-                    is_commercial = False
-                elif filename.endswith(".csv"):
-                    is_commercial = True
-                else:
-                    raise ValueError(f"Unexpected file type: {filename}")
+            if is_commercial:
+                commercial_model, prompt_type, disfluency_type = parse_csv_filename(filename)
+                lang_qe_data, missing = prepare_comet_data_csv(filepath, disfluency_type)
+                all_missing.extend((filename, col, lang, src) for col, lang, src in missing)
 
-                if is_commercial:
-                    commercial_model, prompt_type, disfluency_type = parse_csv_filename(filename)
-                    lang_qe_data = prepare_comet_data_csv(os.path.join(model_path, filename), disfluency_type)
+                if all(make_eval_key(model_type, commercial_model, filename, disfluency_type, lang) in evaluated_keys for lang in lang_qe_data):
+                    print(f"    Skipping {filename} (all languages already evaluated)")
+                    continue
 
-                    if all(make_eval_key(model_type, commercial_model, filename, disfluency_type, lang) in evaluated_keys for lang in lang_qe_data):
-                        print(f"    Skipping {filename} (all languages already evaluated)")
+                print(f"  Evaluating {filename} (model: {commercial_model}, prompt: {prompt_type}, disfl: {disfluency_type})")
+
+                for target_lang, qe_list in lang_qe_data.items():
+                    file_key = make_eval_key(model_type, commercial_model, filename, disfluency_type, target_lang)
+                    if file_key in evaluated_keys:
+                        print(f"    Skipping {target_lang} (already evaluated)")
                         continue
+                    comet_score = sum(model.predict(qe_list, batch_size=8, gpus=1).scores) / len(qe_list)
+                    append_result(output_csv, {
+                        "model_type": model_type,
+                        "model": commercial_model,
+                        "source_lang": "en",
+                        "target_lang": target_lang,
+                        "lang_pair": f"en-{target_lang}",
+                        "prompt_type": prompt_type,
+                        "disfluency_type": disfluency_type,
+                        "comet_score": comet_score,
+                        "filename": filename,
+                    })
+                    evaluated_keys.add(file_key)
+                    results_count += 1
+                    print(f"    {target_lang} COMET score: {comet_score:.4f}")
 
-                    print(f"    Evaluating {filename} (model: {commercial_model}, prompt: {prompt_type}, disfl: {disfluency_type})")
+            else:
+                model_name = model_type  # e.g. "llama" or "tower"
+                source_lang, target_lang, prompt_type = parse_xml_filename(filename)
+                qe_dict = prepare_comet_data_xml(csv_path, filepath)
+                disfluency_types_in_file = set(key.split("##")[1] for key in qe_dict)
 
-                    for target_lang, qe_list in lang_qe_data.items():
-                        file_key = make_eval_key(model_type, commercial_model, filename, disfluency_type, target_lang)
-                        if file_key in evaluated_keys:
-                            print(f"      Skipping {target_lang} (already evaluated)")
-                            continue
-                        comet_score = sum(model.predict(qe_list, batch_size=8, gpus=1).scores) / len(qe_list)
-                        append_result(output_csv, {
-                            "model_type": model_type,
-                            "model": commercial_model,
-                            "source_lang": "en",
-                            "target_lang": target_lang,
-                            "lang_pair": f"en-{target_lang}",
-                            "prompt_type": prompt_type,
-                            "disfluency_type": disfluency_type,
-                            "comet_score": comet_score,
-                            "filename": filename,
-                        })
-                        evaluated_keys.add(file_key)
-                        results_count += 1
-                        print(f"      {target_lang} COMET score: {comet_score:.4f}")
+                if all(make_eval_key(model_type, model_name, filename, dt, target_lang) in evaluated_keys for dt in disfluency_types_in_file):
+                    print(f"  Skipping {filename} (all disfluency types already evaluated)")
+                    continue
 
-                else:
-                    source_lang, target_lang, prompt_type = parse_xml_filename(filename)
-                    qe_dict = prepare_comet_data_xml(csv_path, os.path.join(model_path, filename))
-                    disfluency_types_in_file = set(key.split("##")[1] for key in qe_dict)
+                print(f"  Evaluating {filename} (lang: {source_lang}→{target_lang}, prompt: {prompt_type})")
+                scores_by_type = compute_comet_scores(model, qe_dict)
 
-                    if all(make_eval_key(model_type, model_name, filename, dt, target_lang) in evaluated_keys for dt in disfluency_types_in_file):
-                        print(f"    Skipping {filename} (all disfluency types already evaluated)")
+                for disfluency_type, comet_score in scores_by_type.items():
+                    file_key = make_eval_key(model_type, model_name, filename, disfluency_type, target_lang)
+                    if file_key in evaluated_keys:
+                        print(f"    Skipping {disfluency_type} (already evaluated)")
                         continue
-
-                    print(f"    Evaluating {filename} (lang: {source_lang}→{target_lang}, prompt: {prompt_type})")
-                    scores_by_type = compute_comet_scores(model, qe_dict)
-
-                    for disfluency_type, comet_score in scores_by_type.items():
-                        file_key = make_eval_key(model_type, model_name, filename, disfluency_type, target_lang)
-                        if file_key in evaluated_keys:
-                            print(f"      Skipping {disfluency_type} (already evaluated)")
-                            continue
-                        append_result(output_csv, {
-                            "model_type": model_type,
-                            "model": model_name,
-                            "source_lang": source_lang,
-                            "target_lang": target_lang,
-                            "lang_pair": f"{source_lang}-{target_lang}",
-                            "prompt_type": prompt_type,
-                            "disfluency_type": disfluency_type,
-                            "comet_score": comet_score,
-                            "filename": filename,
-                        })
-                        evaluated_keys.add(file_key)
-                        results_count += 1
-                        print(f"      {disfluency_type} COMET score: {comet_score:.4f}")
+                    append_result(output_csv, {
+                        "model_type": model_type,
+                        "model": model_name,
+                        "source_lang": source_lang,
+                        "target_lang": target_lang,
+                        "lang_pair": f"{source_lang}-{target_lang}",
+                        "prompt_type": prompt_type,
+                        "disfluency_type": disfluency_type,
+                        "comet_score": comet_score,
+                        "filename": filename,
+                    })
+                    evaluated_keys.add(file_key)
+                    results_count += 1
+                    print(f"    {disfluency_type} COMET score: {comet_score:.4f}")
 
     if results_count > 0 or os.path.exists(output_csv):
         print(f"\n{'='*60}")
@@ -270,6 +274,10 @@ def evaluate_all_translations(base_dir, csv_path, output_csv):
         save_pivot_tables(output_csv)
     else:
         print("\nNo results to save.")
+
+    print("Missing entries")
+    for row in all_missing:
+        print(row)
 
 
 if __name__ == "__main__":

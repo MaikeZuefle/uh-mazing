@@ -1,6 +1,6 @@
 #!/bin/bash
 
-INPUT=generated_output
+INPUT=generated_output # folder with model subfolders
 REFERENCES=translation_data/references.csv
 OUTPUT=results/translations/evaluation_results.csv
 

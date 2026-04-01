@@ -29,3 +29,4 @@ benchmarking/generated_output/
 requirements_canary.txt
 requirements_phi.txt
 .claude
+benchmarking/results/
