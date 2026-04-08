@@ -2,6 +2,7 @@
 humeval/data_prepare
 humeval/data
 humeval_disfluency_meaning/data
+humeval_disfluency_meaning/annotations.json
 
 # other
 *__pycache__*
