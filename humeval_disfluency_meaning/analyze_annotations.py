@@ -13,6 +13,8 @@ data_category_agg = collections.defaultdict(list)
 data_user_agg = collections.defaultdict(list)
 
 for line in data:
+    if "item" not in line:
+        continue
     category = line["item"][0]["item_id"].split("_", 1)[-1]
     if category == "example":
         continue
