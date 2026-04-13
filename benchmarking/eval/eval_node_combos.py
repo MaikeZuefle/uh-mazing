@@ -4,27 +4,39 @@ import csv
 from collections import defaultdict
 from utils import load_xml_hypotheses, clean_disfluency_text
 from utils import load_comet_model, append_result, parse_xml_filename
-from utils import REQUIRED_DISFLUENCY_COLUMNS, COMMERCIAL_DISFLUENCY_TYPES, COMMERCIAL_PROMPT_TYPES, COMMERCIAL_LANG_CODE_MAP
+from utils import REQUIRED_DISFLUENCY_COLUMNS, COMMERCIAL_LANG_CODE_MAP
 
 MODEL_TYPES = ["commercial_models", "llama", "tower"]
 
 
 def parse_csv_filename(filename):
-    """Parse node-combos_{model}_{prompt_type}_{disfluency_type}.csv"""
-    stem = filename[len("node-combos_"):-len(".csv")]
-    disfluency_type = None
-    for dt in sorted(COMMERCIAL_DISFLUENCY_TYPES, key=len, reverse=True):
-        if stem.endswith("_" + dt):
-            disfluency_type = dt
-            stem = stem[:-len("_" + dt)]
-            break
-    if disfluency_type is None:
-        raise ValueError(f"Could not extract disfluency type from filename: {filename}")
-    for pt in COMMERCIAL_PROMPT_TYPES:
-        if stem.endswith("_" + pt):
-            model_name = stem[:-len("_" + pt)]
-            return model_name, pt, disfluency_type
-    raise ValueError(f"Could not extract prompt type from filename: {filename}")
+    """
+    Parse node-combos_{model}_{prompt_type}_{disfluency_label}-noextra.csv
+    Each file corresponds to exactly one disfluency type used as translation source.
+    Returns (model, prompt_type, col_name, out_name) where:
+      col_name: actual column in the CSV (e.g. 'text_fluent', 'edited_intj')
+      out_name: canonical name for output (e.g. 'EN_fluent', 'edited_intj')
+    """
+    if not filename.startswith("node-combos_") or not filename.endswith(".csv"):
+        raise ValueError(f"Unexpected node-combos filename: {filename}")
+    inner = filename[len("node-combos_"):-len(".csv")]
+    parts = inner.split("_")
+    if len(parts) < 3:
+        raise ValueError(f"Cannot parse node-combos filename (too few parts): {filename}")
+    model = parts[0]
+    prompt_type = parts[1]
+    disfl_with_suffix = "_".join(parts[2:])
+    if not disfl_with_suffix.endswith("-noextra"):
+        raise ValueError(f"Expected -noextra suffix in filename: {filename}")
+    disfl_label = disfl_with_suffix[:-len("-noextra")]
+
+    # Map short filename labels to (CSV column name, canonical output name)
+    label_map = {
+        "fluent": ("text_fluent", "EN_fluent"),
+        "disfluent": ("text_disfluent", "EN_disfluent"),
+    }
+    col_name, out_name = label_map.get(disfl_label, (disfl_label, disfl_label))
+    return model, prompt_type, col_name, out_name
 
 
 def prepare_comet_data_csv(csv_path, disfluency_type):
@@ -46,7 +58,10 @@ def prepare_comet_data_csv(csv_path, disfluency_type):
         if not lang_columns:
             raise ValueError(f"No translation columns found in {csv_path}")
         for row in reader:
+
             src_text = clean_disfluency_text(row[disfluency_type].strip())
+
+
             for col, lang in lang_columns.items():
                 mt_text = row[col].strip()
                 if not mt_text:
@@ -200,20 +215,20 @@ def evaluate_all_translations(base_dir, csv_path, output_csv):
                 continue  # skip .log and other non-translation files
 
             if is_commercial:
-                commercial_model, prompt_type, disfluency_type = parse_csv_filename(filename)
-                lang_qe_data, missing = prepare_comet_data_csv(filepath, disfluency_type)
+                commercial_model, prompt_type, col_disfluency, out_disfluency = parse_csv_filename(filename)
+                print(f"  Evaluating {filename} (model: {commercial_model}, prompt: {prompt_type}, disfl: {out_disfluency})")
+
+                lang_qe_data, missing = prepare_comet_data_csv(filepath, col_disfluency)
                 all_missing.extend((filename, col, lang, src) for col, lang, src in missing)
 
-                if all(make_eval_key(model_type, commercial_model, filename, disfluency_type, lang) in evaluated_keys for lang in lang_qe_data):
+                if all(make_eval_key(model_type, commercial_model, filename, out_disfluency, lang) in evaluated_keys for lang in lang_qe_data):
                     print(f"    Skipping {filename} (all languages already evaluated)")
                     continue
 
-                print(f"  Evaluating {filename} (model: {commercial_model}, prompt: {prompt_type}, disfl: {disfluency_type})")
-
                 for target_lang, qe_list in lang_qe_data.items():
-                    file_key = make_eval_key(model_type, commercial_model, filename, disfluency_type, target_lang)
+                    file_key = make_eval_key(model_type, commercial_model, filename, out_disfluency, target_lang)
                     if file_key in evaluated_keys:
-                        print(f"    Skipping {target_lang} (already evaluated)")
+                        print(f"    Skipping {out_disfluency}/{target_lang} (already evaluated)")
                         continue
                     comet_score = sum(model.predict(qe_list, batch_size=8, gpus=1).scores) / len(qe_list)
                     append_result(output_csv, {
@@ -223,13 +238,13 @@ def evaluate_all_translations(base_dir, csv_path, output_csv):
                         "target_lang": target_lang,
                         "lang_pair": f"en-{target_lang}",
                         "prompt_type": prompt_type,
-                        "disfluency_type": disfluency_type,
+                        "disfluency_type": out_disfluency,
                         "comet_score": comet_score,
                         "filename": filename,
                     })
                     evaluated_keys.add(file_key)
                     results_count += 1
-                    print(f"    {target_lang} COMET score: {comet_score:.4f}")
+                    print(f"    {out_disfluency}/{target_lang} COMET score: {comet_score:.4f}")
 
             else:
                 model_name = model_type  # e.g. "llama" or "tower"
