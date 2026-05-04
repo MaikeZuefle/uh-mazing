@@ -3,13 +3,18 @@
 INPUT=generated_output # folder with model subfolders
 REFERENCES=../translation_data/references.csv
 OUTPUT=results/translations/evaluation_results.csv
+ONLY_CHRF=true  # set to true to skip COMET and only (re)compute ChrF scores
 
 cd "$(dirname "$0")/.." || exit 1
+
+CHRF_FLAG=""
+[ "$ONLY_CHRF" = "true" ] && CHRF_FLAG="--only-chrf"
 
 python eval/eval_translations.py \
     --input "$INPUT" \
     --references "$REFERENCES" \
-    --output "$OUTPUT"
+    --output "$OUTPUT" \
+    $CHRF_FLAG
 
 OUTPUT_COMET_TABLE="${OUTPUT%.csv}_comet_table.csv"
 OUTPUT_CHRF_TABLE="${OUTPUT%.csv}_chrf_table.csv"

@@ -15,10 +15,14 @@ MODELS_EN_X = [
     "canary",
     "phi",
     "qwen",
-    "gemini-2.5-flash-audio",
-    "gemini-2.5-flash-text",
-    "gpt52-audio",
-    "gpt52-text",
+    "gold-text-gemini",
+    "gold-text-chatgpt",
+    "asr-text-gemini",
+    "asr-text-chatgpt",
+    "audio-gemini",
+    "audio-chatgpt",
+    "audio-noextra-gemini",
+    "audio-noextra-chatgpt",
 ]
 
 MODELS_X_EN = [
@@ -79,14 +83,25 @@ def transform_results(input_csv, output_csv, metric=None):
         ("speechllm", "qwen_omni"): "qwen",
     }
     
-    # Add standardized model name column
-    # Commercial models use {model}-{modality} as the effective name to distinguish modalities
+    COMMERCIAL_SHORT = {"gemini-2.5-flash": "gemini", "gpt52": "chatgpt"}
+
     def get_model_name(row):
         if row["model_type"] == "commercial_models":
-            return f"{row['model']}-{row['modality']}"
+            short = COMMERCIAL_SHORT.get(row["model"], row["model"])
+            pt = row["prompt_type"]
+            if row["modality"] == "text":
+                return f"gold-text-{short}" if pt.endswith("_fluent") else f"asr-text-{short}"
+            else:  # audio
+                return f"audio-noextra-{short}" if "noextra" in pt else f"audio-{short}"
         return model_mapping.get((row["model_type"], row["model"]), f"{row['model_type']}-{row['model']}")
 
+    def normalize_prompt_type(row):
+        if row["model_type"] == "commercial_models":
+            return "standard" if row["prompt_type"].startswith("standard") else "disfluency_aware"
+        return row["prompt_type"]
+
     df["model_name"] = df.apply(get_model_name, axis=1)
+    df["prompt_type"] = df.apply(normalize_prompt_type, axis=1)
     
     # Separate en→x and x→en translations
     # Check if we have the new format with source_lang and target_lang columns
@@ -117,12 +132,7 @@ def transform_results(input_csv, output_csv, metric=None):
         if len(model_df) == 0:
             continue
         
-        # Models without prompt type variants (single row each)
-        has_prompt_types = model not in [
-            "canary", "owsm", "phi", "qwen",
-            "gemini-2.5-flash-audio", "gemini-2.5-flash-text",
-            "gpt52-audio", "gpt52-text",
-        ]
+        has_prompt_types = model not in ["canary", "owsm"]
         
         if has_prompt_types:
             # Create two rows: one for standard, one for disfluency_aware

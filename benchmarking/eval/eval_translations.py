@@ -78,12 +78,13 @@ def parse_commercial_filename(filename):
     return model, modality, prompt_output
 
 
-def prepare_data_csv(df, csv_path, model, lang_code):
+def prepare_data_csv(df, csv_path, model, lang_code, refs_df):
     """
     Prepare (sources, hypotheses, references) for a single language from a commercial CSV.
-    df: already-loaded DataFrame (pass in to avoid re-reading per lang).
+    df: already-loaded commercial DataFrame.
+    refs_df: references DataFrame loaded from references.csv (the authoritative source).
     lang_code: uppercase, e.g. 'ZH', 'ES'.
-    references is None when no reference column exists (e.g. SW, LG).
+    references is None when no reference column exists (e.g. LG).
     """
     source_column = "EN_disfluent"
     if source_column not in df.columns:
@@ -95,10 +96,15 @@ def prepare_data_csv(df, csv_path, model, lang_code):
 
     ref_lang_code = COMMERCIAL_REF_LANG_MAP.get(lang_code, lang_code)
     ref_column = f"{ref_lang_code}_disfluent"
-    has_reference = ref_column in df.columns
+    has_reference = ref_column in refs_df.columns
+
+    if has_reference:
+        merged = df[["ID", source_column, hyp_column]].merge(refs_df[["ID", ref_column]], on="ID", how="left")
+    else:
+        merged = df[["ID", source_column, hyp_column]]
 
     sources, hypotheses, references = [], [], []
-    for _, row in df.iterrows():
+    for _, row in merged.iterrows():
         raw_src = row[source_column]
         if pd.isna(raw_src) or str(raw_src).strip() == "":
             raise ValueError(f"Empty source in {csv_path}")
@@ -108,7 +114,6 @@ def prepare_data_csv(df, csv_path, model, lang_code):
         if pd.isna(raw_hyp):
             raw_hyp = ""
             print(f"Empty hypothesis for lang {lang_code} in {csv_path}")
-            # raise ValueError(f"Empty hypothesis for lang {lang_code} in {csv_path}")
         hypotheses.append(str(raw_hyp))
 
         if has_reference:
@@ -145,20 +150,39 @@ def make_eval_key(model_type, model, filename, target_lang):
 # Main evaluation loop
 # ---------------------------------------------------------------------------
 
-def evaluate_all_translations(base_dir, csv_path, output_csv):
-    comet_model = load_comet_model()
+def evaluate_all_translations(base_dir, csv_path, output_csv, only_chrf=False):
+    comet_model = None if only_chrf else load_comet_model()
+    refs_df = pd.read_csv(csv_path)
 
     if os.path.exists(output_csv):
-        print(f"Output file {output_csv} already exists. Appending new results...")
         existing_df = pd.read_csv(output_csv)
-        evaluated_keys = set(
+        all_keys = set(
             existing_df.apply(
                 lambda row: make_eval_key(row["model_type"], row["model"], row["filename"], row["target_lang"]),
                 axis=1,
             )
         )
+        if only_chrf:
+            # skip rows that already have a chrf score; update in-place instead of appending
+            evaluated_keys = set(
+                existing_df[existing_df["chrf_score"].notna() & (existing_df["chrf_score"] != "")].apply(
+                    lambda row: make_eval_key(row["model_type"], row["model"], row["filename"], row["target_lang"]),
+                    axis=1,
+                )
+            )
+            key_to_idx = {
+                make_eval_key(row["model_type"], row["model"], row["filename"], row["target_lang"]): idx
+                for idx, row in existing_df.iterrows()
+            }
+            chrf_updates = {}
+        else:
+            print(f"Output file {output_csv} already exists. Appending new results...")
+            evaluated_keys = all_keys
     else:
         evaluated_keys = set()
+        if only_chrf:
+            key_to_idx = {}
+            chrf_updates = {}
 
     results_count = 0
 
@@ -196,23 +220,27 @@ def evaluate_all_translations(base_dir, csv_path, output_csv):
                             csv_path, os.path.join(entry_path, filename), source_lang, target_lang
                         )
                         chrf_score = compute_chrf(hypotheses, references)
-                        comet_score = compute_comet_qe(comet_model, sources, hypotheses)
 
-                        append_result(output_csv, {
-                            "model_type": model_type,
-                            "model": model_name,
-                            "modality": "",
-                            "source_lang": source_lang,
-                            "target_lang": target_lang,
-                            "lang_pair": f"{source_lang}-{target_lang}",
-                            "prompt_type": prompt_type,
-                            "chrf_score": chrf_score,
-                            "comet_score": comet_score,
-                            "filename": filename,
-                        })
+                        if only_chrf:
+                            chrf_updates[eval_key] = chrf_score
+                            print(f"      CHRF++ score: {chrf_score:.4f}")
+                        else:
+                            comet_score = compute_comet_qe(comet_model, sources, hypotheses)
+                            append_result(output_csv, {
+                                "model_type": model_type,
+                                "model": model_name,
+                                "modality": "",
+                                "source_lang": source_lang,
+                                "target_lang": target_lang,
+                                "lang_pair": f"{source_lang}-{target_lang}",
+                                "prompt_type": prompt_type,
+                                "chrf_score": chrf_score,
+                                "comet_score": comet_score,
+                                "filename": filename,
+                            })
+                            print(f"      CHRF++ score: {chrf_score:.4f}, COMET QE score: {comet_score:.4f}")
                         evaluated_keys.add(eval_key)
                         results_count += 1
-                        print(f"      CHRF++ score: {chrf_score:.4f}, COMET QE score: {comet_score:.4f}")
 
                     else: 
                         raise ValueError(f"Unexpected file type in {entry_path}: {filename}")
@@ -231,34 +259,44 @@ def evaluate_all_translations(base_dir, csv_path, output_csv):
                             print(f"    Skipping {lang_code} in {filename} (already evaluated)")
                             continue
 
-                        sources, hypotheses, references = prepare_data_csv(commercial_df, entry_path, commercial_model, lang_code)
+                        sources, hypotheses, references = prepare_data_csv(commercial_df, entry_path, commercial_model, lang_code, refs_df)
 
                         chrf_score = None
                         if references is not None:
                             chrf_score = compute_chrf(hypotheses, references)
 
-                        comet_score = compute_comet_qe(comet_model, sources, hypotheses)
-
-                        chrf_str = f"{chrf_score:.4f}" if chrf_score is not None else "N/A"
-                        print(f"    {lang_code}: CHRF++ = {chrf_str}, COMET QE = {comet_score:.4f}")
-
-                        append_result(output_csv, {
-                            "model_type": model_type,
-                            "model": commercial_model,
-                            "modality": modality,
-                            "source_lang": "en",
-                            "target_lang": target_lang,
-                            "lang_pair": f"en-{target_lang}",
-                            "prompt_type": prompt_output,
-                            "chrf_score": chrf_score,
-                            "comet_score": comet_score,
-                            "filename": filename,
-                        })
+                        if only_chrf:
+                            chrf_str = f"{chrf_score:.4f}" if chrf_score is not None else "N/A"
+                            print(f"    {lang_code}: CHRF++ = {chrf_str}")
+                            chrf_updates[eval_key] = chrf_score
+                        else:
+                            comet_score = compute_comet_qe(comet_model, sources, hypotheses)
+                            chrf_str = f"{chrf_score:.4f}" if chrf_score is not None else "N/A"
+                            print(f"    {lang_code}: CHRF++ = {chrf_str}, COMET QE = {comet_score:.4f}")
+                            append_result(output_csv, {
+                                "model_type": model_type,
+                                "model": commercial_model,
+                                "modality": modality,
+                                "source_lang": "en",
+                                "target_lang": target_lang,
+                                "lang_pair": f"en-{target_lang}",
+                                "prompt_type": prompt_output,
+                                "chrf_score": chrf_score,
+                                "comet_score": comet_score,
+                                "filename": filename,
+                            })
                         evaluated_keys.add(eval_key)
                         results_count += 1
                 else: 
                     raise ValueError(f"Unexpected file type in {entry_path}: {filename}")
 
+
+    if only_chrf and chrf_updates:
+        for key, score in chrf_updates.items():
+            if key in key_to_idx:
+                existing_df.at[key_to_idx[key], "chrf_score"] = score
+        existing_df.to_csv(output_csv, index=False)
+        print(f"\nUpdated {len(chrf_updates)} chrf_score values in {output_csv}")
 
     if results_count > 0 or os.path.exists(output_csv):
         print(f"\n{'='*60}")
@@ -285,9 +323,11 @@ if __name__ == "__main__":
     parser.add_argument("--input", required=True, help="Base directory containing generated output (e.g. generated_output)")
     parser.add_argument("--references", required=True, help="Path to references CSV (e.g. translation_data/references.csv)")
     parser.add_argument("--output", required=True, help="Path to output CSV (e.g. eval/results_non_commercial/evaluation_results.csv)")
+    parser.add_argument("--only-chrf", action="store_true", help="Only compute/update ChrF scores (skip COMET, update in-place)")
     args = parser.parse_args()
     evaluate_all_translations(
         base_dir=args.input,
         csv_path=args.references,
         output_csv=args.output,
+        only_chrf=args.only_chrf,
     )
