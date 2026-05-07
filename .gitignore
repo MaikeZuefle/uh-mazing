@@ -1,5 +1,8 @@
 # added by zouharvi
-/data
+humeval/data_prepare
+humeval/data
+humeval_disfluency_meaning/data
+humeval_disfluency_meaning/annotations.json
 
 # other
 *__pycache__*
@@ -24,3 +27,7 @@ run_eval.sh
 transform_outputs_for_table.py
 myjob.sh
 benchmarking/generated_output/
+requirements_canary.txt
+requirements_phi.txt
+.claude
+benchmarking/results/

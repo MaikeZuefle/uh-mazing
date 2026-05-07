@@ -1,7 +1,9 @@
+import os
 import pandas as pd
 import xml.etree.ElementTree as ET
 import re
 from jiwer import Compose, RemoveMultipleSpaces, Strip
+from comet import download_model, load_from_checkpoint
 normalizer = Compose([
     RemoveMultipleSpaces(),
     Strip()
@@ -18,10 +20,13 @@ LANG_COLUMN_MAP = {
     'it': 'IT_disfluent',
     'zh': 'ZH_disfluent',
     'sw': 'SW_disfluent',
-    'lg': 'LG_disfluent',
     'en': 'EN_disfluent'  
 }
-MODEL_TYPES = ["canary_cascaded", "end2end", "gold_cascaded", "speechllm", "whisper_cascaded"]
+MODEL_TYPES = ["canary_cascaded", "end2end", "gold_cascaded", "speechllm", "whisper_cascaded", "commercial_models"]
+
+# Maps uppercase lang codes in commercial CSV hypothesis columns to their reference column lang codes
+# (e.g. hypothesis column CZ_model → reference column CS_disfluent)
+COMMERCIAL_REF_LANG_MAP = {"CZ": "CS"}
 
 REQUIRED_DISFLUENCY_COLUMNS = [
     "ID",
@@ -35,6 +40,55 @@ REQUIRED_DISFLUENCY_COLUMNS = [
     "edited_prn",
     "edited_prn_intj",
 ]
+
+# Commercial model CSV constants
+COMMERCIAL_LANG_CODES = ["ZH", "ES", "HI", "FR", "DE", "IT", "SW", "CZ", "AR", "LG"]
+
+COMMERCIAL_DISFLUENCY_TYPES = [
+    "edited_nodes_only", "edited_prn_intj", "edited_intj",
+    "edited_prn", "intj_prn", "intj_only", "prn_only",
+]
+
+COMMERCIAL_PROMPT_TYPES = ["standard"]
+
+# Maps uppercase lang codes used in commercial CSV columns to ISO 639-1 codes
+COMMERCIAL_LANG_CODE_MAP = {
+    "ZH": "zh",
+    "ES": "es",
+    "HI": "hi",
+    "FR": "fr",
+    "DE": "de",
+    "IT": "it",
+    "CZ": "cs",  # Czech: column uses CZ, ISO 639-1 is cs
+    "AR": "ar",
+}
+
+def load_comet_model(model_name="Unbabel/wmt22-cometkiwi-da"):
+    model_path = download_model(model_name)
+    return load_from_checkpoint(model_path).to("cuda")
+
+
+def append_result(output_csv, result_dict):
+    output_dir = os.path.dirname(output_csv)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+    row = pd.DataFrame([result_dict])
+    if not os.path.exists(output_csv):
+        row.to_csv(output_csv, mode='w', header=True, index=False)
+    else:
+        row.to_csv(output_csv, mode='a', header=False, index=False)
+
+
+def parse_xml_filename(filename):
+    """Returns (source_lang, target_lang, prompt_type) from a non-commercial XML filename."""
+    source_lang, target_lang = extract_language_from_filename(filename)
+    if source_lang is None or target_lang is None:
+        raise ValueError(f"Could not extract language pair from {filename}")
+    prompt_type = extract_prompt_type_from_filename(filename)
+    if prompt_type is None:
+        raise ValueError(f"Could not extract prompt type from {filename}")
+    return source_lang, target_lang, prompt_type
+
 
 def clean_disfluency_text(text: str) -> str:
     """

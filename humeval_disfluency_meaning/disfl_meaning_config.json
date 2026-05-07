@@ -1,0 +1,64 @@
+{
+  "info": {
+    "assignment": "task-based",
+    "protocol": "DA",
+    "textfield": "prefilled",
+    "sliders": [
+      {
+        "name": "Intensity",
+        "min": 0,
+        "max": 5,
+        "step": 1
+      }
+    ],
+    "instructions": "<ul><li>Listen to the audio or read the transcript below. Identify the emotions the speaker themselves is conveying.</li><li>Focus on <b>how the speaker feels</b>, not on the topic they are describing.</li><li>Provide up to 5 emotions and rate the intensity of each on a scale from 0 (not intense) to 5 (very intense).</li><li>Example: The utterance <i style=\"background-color: lightgray\">I, uh, I don't know, I just, I really wish they would, you know, just listen to me.</i> could reflect the speaker's emotion <b>frustration</b> with moderate intensity (3) or <b>helplessness</b> with low intensity (2).</li></ul> <style>.output_src { width: 600px; } .output_item { display: block; } .output_tgt { display: none; }  .output_textfield { display: block; resize: none; width: 600px; min-height: inherit; height: 1.5em; position: relative; top: -20px; } .output_response { width: 600px; margin-top: 30px; } .output_candidate { display: block; } .slider_container { position: relative; top: 60px; } .output_scrollable { display: block; } #instructions_global { font-size: 14pt !important; width: calc(100% - 200px) !important; margin-right: 10px; } #instructions_global > ul > li { margin-top: 20px; }</style> <script defer src='https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js'></script> <script defer>setTimeout(() => { $('input[type=\"range\"]').trigger('click');}, 50);</script>",
+    "shuffle": false
+  },
+  "campaign_id": "uh-mazing_disfluency_meaning",
+  "data": [
+    [
+      {
+        "instructions": "<script defer>setTimeout(() => { $('#response_0_a_Intensity').val(3); $('#response_0_a_Intensity').trigger('click'); $('#response_0_b_Intensity').val(2); $('#response_0_b_Intensity').trigger('click'); }, 100);</script>",
+        "src": "I, uh, I don't know, I just, I really wish they would, you know, just listen to me.",
+        "tgt": {
+          "a": "frustration",
+          "b": "helplessness",
+          "c": "",
+          "d": "",
+          "e": ""
+        },
+        "item_id": "example"
+      }
+    ],
+    [
+      [
+        {
+          "src": "I'd be very very careful and, uh, you know, checking them out. Uh, our, had t-, place my mother in a nursing home. She had a rather massive stroke about, uh, about uh, eight months ago I guess.",
+          "tgt": {
+            "a": "",
+            "b": "",
+            "c": "",
+            "d": "",
+            "e": ""
+          },
+          "item_id": "2"
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "src": "I'd be very very careful checking them out, our, had t-, place my mother in a nursing home. She had a rather massive stroke, about, eight months ago.",
+          "tgt": {
+            "a": "",
+            "b": "",
+            "c": "",
+            "d": "",
+            "e": ""
+          },
+          "item_id": "3"
+        }
+      ]
+    ]
+  ]
+}
