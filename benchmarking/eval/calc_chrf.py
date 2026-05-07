@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import re
 from sacrebleu.metrics import CHRF
-from utils import load_xml_hypotheses, clean_disfluency_text, extract_language_from_filename, extract_prompt_type_from_filename
+from utils import load_xml_hypotheses, clean_disfluency_text, extract_language_from_filename, extract_prompt_type_from_filename, extract_decode_strategy_from_filename
 from utils import LANG_COLUMN_MAP, MODEL_TYPES
 
 
@@ -110,13 +110,14 @@ def evaluate_all_translations(base_dir="generated_output", references_csv="refer
                 if prompt_type is None:
                     print(f"    Warning: Could not extract prompt type from {filename}")
                     continue
-                
+
+                decode_strategy = extract_decode_strategy_from_filename(filename)
                 xml_path = os.path.join(model_path, filename)
-                
-                print(f"    Evaluating {filename} (lang: {source_lang}→{target_lang}, prompt: {prompt_type})")
+
+                print(f"    Evaluating {filename} (lang: {source_lang}→{target_lang}, prompt: {prompt_type}, decode: {decode_strategy})")
 
                 chrf_score = compute_chrf_scores(references_csv, xml_path, source_lang, target_lang)
-                
+
                 if chrf_score is not None:
                     # Create new result row
                     new_result = pd.DataFrame([{
@@ -126,6 +127,7 @@ def evaluate_all_translations(base_dir="generated_output", references_csv="refer
                         "target_lang": target_lang,
                         "lang_pair": f"{source_lang}-{target_lang}",
                         "prompt_type": prompt_type,
+                        "decode_strategy": decode_strategy,
                         "chrf_score": chrf_score,
                         "filename": filename
                     }])

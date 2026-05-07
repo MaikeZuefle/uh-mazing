@@ -66,7 +66,7 @@ def set_up_logging(output_file_path):
     logging.basicConfig(level=logging.INFO, handlers=[file_handler, console_handler])
 
 
-def set_up_dirs(in_data_folder, out_folder, model, src_lang, trg_lang, modality, prompt):
+def set_up_dirs(in_data_folder, out_folder, model, src_lang, trg_lang, modality, prompt, decode_label="greedy"):
     if not os.path.isdir(in_data_folder):
         raise FileNotFoundError(f"Input folder does not exist: {in_data_folder}")
 
@@ -75,7 +75,7 @@ def set_up_dirs(in_data_folder, out_folder, model, src_lang, trg_lang, modality,
     os.makedirs(model_out_folder, exist_ok=True)
 
     # Define output file paths
-    output_file_name = f"{modality}_{src_lang}_{trg_lang}_{prompt}_{model}_output.xml"
+    output_file_name = f"{modality}_{src_lang}_{trg_lang}_{prompt}_{model}_{decode_label}_output.xml"
     output_file_path = os.path.join(model_out_folder, output_file_name)
 
     return output_file_path

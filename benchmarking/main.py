@@ -32,6 +32,39 @@ from utils import LANGUAGE_DICT, REQUIRED_DISFLUENCY_COLUMNS
 set_seed(42)
 
 
+DECODE_STRATEGIES = ["greedy", "sampling", "beam_search", "beam_sampling", "typical"]
+
+
+def build_gen_kwargs(strategy, param):
+    if strategy == "greedy":
+        return {"do_sample": False, "num_beams": 1}
+    elif strategy == "sampling":
+        return {"do_sample": True, "temperature": param, "num_beams": 1}
+    elif strategy == "beam_search":
+        return {"do_sample": False, "num_beams": int(param)}
+    elif strategy == "beam_sampling":
+        return {"do_sample": True, "num_beams": int(param)}
+    elif strategy == "typical":
+        return {"do_sample": True, "typical_p": param, "num_beams": 1}
+    else:
+        raise ValueError(f"Unknown decode strategy: {strategy}")
+
+
+def get_decode_label(strategy, param):
+    if strategy == "greedy":
+        return "greedy"
+    elif strategy == "sampling":
+        return f"sampling_t{param}"
+    elif strategy == "beam_search":
+        return f"beam_search_n{int(param)}"
+    elif strategy == "beam_sampling":
+        return f"beam_sampling_n{int(param)}"
+    elif strategy == "typical":
+        return f"typical_p{param}"
+    else:
+        raise ValueError(f"Unknown decode strategy: {strategy}")
+
+
 def load_model(model_name):
     # text models
     if model_name == "llama":
@@ -65,14 +98,14 @@ def load_model(model_name):
     return model, generate_func
 
 
-def main(in_data_folder, out_folder, model, src_lang, trg_lang, modality, prompt, ablate_disfluencies=False):
+def main(in_data_folder, out_folder, model, src_lang, trg_lang, modality, prompt, ablate_disfluencies=False, gen_kwargs=None, decode_label="greedy"):
 
 
 
 
     # Setting up folders and logging
     output_file_path = set_up_dirs(
-        in_data_folder, out_folder, model, src_lang, trg_lang, modality, prompt
+        in_data_folder, out_folder, model, src_lang, trg_lang, modality, prompt, decode_label
     )
     set_up_logging(output_file_path)
 
@@ -145,7 +178,7 @@ def main(in_data_folder, out_folder, model, src_lang, trg_lang, modality, prompt
 
     
     for file_name, example_path in tqdm(input_data, desc="Generating Outputs"):
-        output = generate(model_instance, instruction, example_path, modality, src_lang=src_lang, trg_lang=trg_lang).strip()
+        output = generate(model_instance, instruction, example_path, modality, src_lang=src_lang, trg_lang=trg_lang, gen_kwargs=gen_kwargs).strip()
         outputs.append((file_name, output))
 
     logging.info(f"Writing Outputs to XML file {output_file_path}.")
@@ -204,8 +237,23 @@ if __name__ == "__main__":
     parser.add_argument(
         "--out_folder", default="generated_output", help="Output data folder path"
     )
+    parser.add_argument(
+        "--decode_strategy",
+        choices=DECODE_STRATEGIES,
+        default="greedy",
+        help="Decoding strategy",
+    )
+    parser.add_argument(
+        "--decode_param",
+        type=float,
+        default=None,
+        help="Parameter for decode strategy (temperature, num_beams, or typical_p)",
+    )
 
     args = parser.parse_args()
+
+    gen_kwargs = build_gen_kwargs(args.decode_strategy, args.decode_param)
+    decode_label = get_decode_label(args.decode_strategy, args.decode_param)
 
     main(
         in_data_folder=args.in_data_folder,
@@ -216,6 +264,8 @@ if __name__ == "__main__":
         modality=args.modality,
         prompt=args.prompt,
         ablate_disfluencies=args.ablate_disfluencies,
+        gen_kwargs=gen_kwargs,
+        decode_label=decode_label,
     )
 
     # python main.py --lang de --modality audio --prompt standard --model qwen_omni

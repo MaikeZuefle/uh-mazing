@@ -5,16 +5,20 @@ def load_model():
     pipe = pipeline("text-generation", model="Unbabel/Tower-Plus-9B", device_map="auto")
     return pipe
 
-def generate(pipe, prompt, example_path, modality, src_lang=None, trg_lang=None):
+def generate(pipe, prompt, example_path, modality, src_lang=None, trg_lang=None, gen_kwargs=None):
 
     if modality != "text":
         raise NotImplementedError("Tower only supports text!")
-    
+
     example = example_path
-        
+
     messages = [{"role": "user", "content": f"{example}\n{prompt}"}]
 
-    outputs = pipe(messages, max_new_tokens=1024, do_sample=False)
+    kwargs = {"max_new_tokens": 1024, "do_sample": False}
+    if gen_kwargs:
+        kwargs.update(gen_kwargs)
+
+    outputs = pipe(messages, **kwargs)
 
     response = outputs[0]["generated_text"][-1]["content"].strip()
 

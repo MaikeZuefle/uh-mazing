@@ -17,7 +17,7 @@ def load_model():
 
 
 
-def generate(pipeline, prompt, example_path, modality, src_lang=None, trg_lang=None):
+def generate(pipeline, prompt, example_path, modality, src_lang=None, trg_lang=None, gen_kwargs=None):
 
     if modality != "text":
         raise NotImplementedError("Llama only supports text!")
@@ -38,10 +38,11 @@ def generate(pipeline, prompt, example_path, modality, src_lang=None, trg_lang=N
     ]
 
 
-    outputs = pipeline(
-        messages,
-        max_new_tokens=4096,
-    )
-    
+    kwargs = {"max_new_tokens": 512}
+    if gen_kwargs:
+        kwargs.update(gen_kwargs)
+
+    outputs = pipeline(messages, **kwargs)
+
     response = outputs[0]["generated_text"][-1]["content"].strip()
     return response

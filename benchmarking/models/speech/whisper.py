@@ -13,7 +13,7 @@ def load_model():
     )
     return pipe
 
-def generate(pipe, prompt, example_path, modality, src_lang, trg_lang):
+def generate(pipe, prompt, example_path, modality, src_lang, trg_lang, gen_kwargs=None):
     if modality != "audio":
         raise NotImplementedError("Whisper only supports audio in this implementation!")
     

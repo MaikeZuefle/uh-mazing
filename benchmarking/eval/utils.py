@@ -106,3 +106,10 @@ def extract_prompt_type_from_filename(filename):
     elif "standard" in filename:
         return "standard"
     return None
+
+
+def extract_decode_strategy_from_filename(filename):
+    match = re.search(r'_(greedy|sampling_t[\d.]+|beam_search_n\d+|beam_sampling_n\d+|typical_p[\d.]+)_output\.xml$', filename)
+    if match:
+        return match.group(1)
+    return "greedy"

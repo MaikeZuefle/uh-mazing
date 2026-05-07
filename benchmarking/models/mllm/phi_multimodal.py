@@ -18,11 +18,11 @@ def load_model():
 
     return model, processor, generation_config
 
-def generate(model_processor_config, prompt, example_path, modality, src_lang=None, trg_lang=None):
+def generate(model_processor_config, prompt, example_path, modality, src_lang=None, trg_lang=None, gen_kwargs=None):
     if modality != "audio":
         raise NotImplementedError("Phi only supports audio in this implementation!")
 
-    model, processor,  generation_config = model_processor_config
+    model, processor, generation_config = model_processor_config
 
     # prompts
     user_prompt = "<|user|>"
@@ -44,10 +44,12 @@ def generate(model_processor_config, prompt, example_path, modality, src_lang=No
         inputs = processor(text=prompt, audios=None, return_tensors='pt').to('cuda:0')
         
 
+    extra_kwargs = gen_kwargs if gen_kwargs else {}
     generate_ids = model.generate(
         **inputs,
-        max_new_tokens=4096,
+        max_new_tokens=512,
         generation_config=generation_config,
+        **extra_kwargs,
     )
     generate_ids = generate_ids[:, inputs['input_ids'].shape[1]:]
     response = processor.batch_decode(

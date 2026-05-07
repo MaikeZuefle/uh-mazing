@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import xml.etree.ElementTree as ET
 from comet import download_model, load_from_checkpoint
-from utils import load_csv_references, load_xml_hypotheses, clean_disfluency_text, MODEL_TYPES, extract_language_from_filename, extract_prompt_type_from_filename
+from utils import load_csv_references, load_xml_hypotheses, clean_disfluency_text, MODEL_TYPES, extract_language_from_filename, extract_prompt_type_from_filename, extract_decode_strategy_from_filename
 
 def load_comet_model(model_name="Unbabel/wmt22-cometkiwi-da"):
     model_path = download_model(model_name)
@@ -76,13 +76,13 @@ def evaluate_all_translations(base_dir="generated_output", csv_path="utils_proce
                 
                 source_lang, target_lang = extract_language_from_filename(filename)
                 prompt_type = extract_prompt_type_from_filename(filename)
+                decode_strategy = extract_decode_strategy_from_filename(filename)
                 xml_path = os.path.join(model_path, filename)
-                print(f"    Evaluating {filename} (lang: {source_lang}→{target_lang}, prompt: {prompt_type})")
-                
+                print(f"    Evaluating {filename} (lang: {source_lang}→{target_lang}, prompt: {prompt_type}, decode: {decode_strategy})")
 
                 sources, translations = prepare_comet_data(csv_path, xml_path, source_lang)
                 comet_score = compute_comet_scores(model, sources, translations)
-                
+
                 # Create new result row
                 new_result = pd.DataFrame([{
                     "model_type": model_type,
@@ -91,6 +91,7 @@ def evaluate_all_translations(base_dir="generated_output", csv_path="utils_proce
                     "target_lang": target_lang,
                     "lang_pair": f"{source_lang}-{target_lang}",
                     "prompt_type": prompt_type,
+                    "decode_strategy": decode_strategy,
                     "comet_score": comet_score,
                     "filename": filename
                 }])
@@ -132,6 +133,6 @@ def evaluate_all_translations(base_dir="generated_output", csv_path="utils_proce
 if __name__ == "__main__":
     evaluate_all_translations(
         base_dir="generated_output",
-        csv_path="translation_data/references.csv",
+        csv_path="../translation_data/references.csv",
         output_csv="eval/results_non_commercial/comet_evaluation_results.csv"
-    )   
+    )

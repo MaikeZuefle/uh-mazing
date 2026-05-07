@@ -14,7 +14,7 @@ def load_model():
     return model, processor
 
 
-def generate(model_processor, prompt, example_path, modality, src_lang=None, trg_lang=None):
+def generate(model_processor, prompt, example_path, modality, src_lang=None, trg_lang=None, gen_kwargs=None):
     from qwen_omni_utils import process_mm_info
     model, processor = model_processor
 

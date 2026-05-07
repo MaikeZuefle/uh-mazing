@@ -23,7 +23,7 @@ def load_model():
     )
     return model
 
-def generate(model, prompt, example_path, modality, src_lang, trg_lang):
+def generate(model, prompt, example_path, modality, src_lang, trg_lang, gen_kwargs=None):
     from langcodes import Language
     import librosa
 
