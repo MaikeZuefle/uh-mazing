@@ -56,6 +56,23 @@ TRANSLATION_CAPTIONS = {
     ),
 }
 
+MAIN_TABLE_CAPTIONS = {
+    "comet": (
+        "COMET-Kiwi scores (standard prompt, English$\\to$X) for the best "
+        "automatic-transcript cascaded system, end-to-end, speechLLM, and audio-input "
+        "commercial models. Full results, including disfluency-aware prompting, gold "
+        "transcripts, and X$\\to$English, are in the appendix.",
+        "tab:comet_main",
+    ),
+    "chrf": (
+        "chrF scores (standard prompt, English$\\to$X) for the best "
+        "automatic-transcript cascaded system, end-to-end, speechLLM, and audio-input "
+        "commercial models. Full results, including disfluency-aware prompting, gold "
+        "transcripts, and X$\\to$English, are in the appendix.",
+        "tab:chrf_main",
+    ),
+}
+
 
 def escape_latex(s):
     return str(s).replace("_", "\\_")
@@ -257,10 +274,11 @@ def select_best_cascaded_asr_model(rows):
     return best_model
 
 
-def build_main_comet_table(csv_path):
+def build_main_translation_table(csv_path, metric):
     """Condensed main-paper table: standard prompt only, EN-to-X only, the single best
     automatic-transcript cascaded model (no gold transcript), and audio-input commercial
     models only (no gold-/ASR-text commercial conditions)."""
+    caption, label = MAIN_TABLE_CAPTIONS[metric]
     df = pd.read_csv(csv_path)
     sections = split_sections(df)
     en_x_rows = [row for row in sections["EN → X TRANSLATIONS"] if row["prompt_type"] != "disfluency_aware"]
@@ -315,13 +333,8 @@ def build_main_comet_table(csv_path):
     lines.append("\\bottomrule")
     lines.append("\\end{tabular}%")
     lines.append("}")
-    lines.append(
-        "\\caption{COMET-Kiwi scores (standard prompt, English$\\to$X) for the best "
-        "automatic-transcript cascaded system, end-to-end, speechLLM, and audio-input "
-        "commercial models. Full results, including disfluency-aware prompting, gold "
-        "transcripts, and X$\\to$English, are in the appendix.}"
-    )
-    lines.append("\\label{tab:comet_main}")
+    lines.append(f"\\caption{{{caption}}}")
+    lines.append(f"\\label{{{label}}}")
     lines.append("\\end{table*}")
     return "\n".join(lines)
 
@@ -383,31 +396,359 @@ def build_asr_table(csv_path):
     return "\n".join(lines)
 
 
-def create_latex_tables(comet_csv, chrf_csv, asr_csv, output_dir):
+LLM_JUDGE_LANG_COLS = ["zh", "es", "hi", "fr", "de", "it", "sw", "cs", "ar"]
+
+LLM_JUDGE_SYSTEM_ORDER = [
+    "gold_cascaded/tower", "end2end/canary", "speechllm/phi_multimodal", "end2end/gemini-2.5-flash",
+]
+# Maps each llm_judge system identifier onto its corresponding key in MODELS, so the display
+# name (with the same Gold/ASR/Audio subscript convention) is reused rather than redefined.
+LLM_JUDGE_SYSTEM_KEY = {
+    "gold_cascaded/tower": "gold-transcript-tower",
+    "end2end/canary": "canary",
+    "speechllm/phi_multimodal": "phi",
+    "end2end/gemini-2.5-flash": "audio-noextra-gemini",
+}
+LLM_JUDGE_PROMPT = "standard"
+
+def is_unsupported(system, value):
+    # Canary does not support ZH/HI/AR; those cells are degenerate 0.0 judge scores, not
+    # real quality scores, so we treat them as missing rather than plotting/tabulating them.
+    return system == "end2end/canary" and value == 0.0
+
+
+def build_llm_judge_combined_table(style_csv, meaning_csv):
+    dfs = {"Meaning": pd.read_csv(meaning_csv), "Style": pd.read_csv(style_csv)}
+    ncols = 2 + len(LLM_JUDGE_LANG_COLS)
+
+    lines = []
+    lines.append("\\begin{table*}[t]")
+    lines.append("\\centering")
+    lines.append("\\resizebox{\\textwidth}{!}{%")
+    lines.append("\\begin{tabular}{ll" + "r" * len(LLM_JUDGE_LANG_COLS) + "}")
+    lines.append("\\toprule")
+    header = ["Model", "Prompt"] + [c.upper() for c in LLM_JUDGE_LANG_COLS]
+    lines.append(" & ".join(f"\\textbf{{{h}}}" for h in header) + " \\\\")
+
+    for section_name, df in dfs.items():
+        col_bounds = {}
+        for lang in LLM_JUDGE_LANG_COLS:
+            values = [
+                row[lang] for _, row in df.iterrows()
+                if not pd.isna(row[lang]) and row[lang] != "" and not is_unsupported(row["system"], row[lang])
+            ]
+            if values:
+                col_bounds[lang] = compute_bounds(values, higher_is_better=True)
+
+        lines.append("\\midrule")
+        lines.append(f"\\multicolumn{{{ncols}}}{{c}}{{\\textit{{{section_name}}}}} \\\\")
+        lines.append("\\midrule")
+        for system in LLM_JUDGE_SYSTEM_ORDER:
+            row = df[df["system"] == system].iloc[0]
+            model_disp = MODELS[LLM_JUDGE_SYSTEM_KEY[system]]["display"]
+            prompt = prompt_display(LLM_JUDGE_PROMPT)
+            cells = []
+            for lang in LLM_JUDGE_LANG_COLS:
+                val = row[lang]
+                if pd.isna(val) or val == "" or is_unsupported(system, val):
+                    cells.append("--")
+                    continue
+                cell = fmt_cell(val)
+                if lang in col_bounds:
+                    worst, best = col_bounds[lang]
+                    cell = colorize(cell, worst, best)
+                cells.append(cell)
+            lines.append(" & ".join([model_disp, prompt] + cells) + " \\\\")
+
+    lines.append("\\bottomrule")
+    lines.append("\\end{tabular}%")
+    lines.append("}")
+    lines.append("\\caption{LLM-judge Meaning and Style Preservation scores by system and language.}")
+    lines.append("\\label{tab:llm_judge}")
+    lines.append("\\end{table*}")
+    return "\n".join(lines)
+
+
+CORRELATION_METRIC_ORDER = ["llm_judge", "chrf", "comet"]
+CORRELATION_METRIC_DISPLAY = {"llm_judge": "LLM-judge", "chrf": "chrF", "comet": "COMET-Kiwi"}
+CORRELATION_AXIS_ORDER = ["style", "meaning", "overall"]
+CORRELATION_AXIS_DISPLAY = {"style": "Style", "meaning": "Meaning", "overall": "Overall"}
+# llm_judge predicts a different value per row (matching the human axis), so its row label
+# should say so explicitly (e.g. "LLM-judge-Style"); chrf/comet predict one fixed value per
+# item regardless of which human axis it's compared against, so they keep one shared label.
+AXIS_MATCHED_METRICS = {"llm_judge"}
+
+
+def build_correlation_table(csv_path):
+    df = pd.read_csv(csv_path)
+    # average each (human_axis, metric, granularity) over the 8 languages
+    avg = df.groupby(["human_axis", "metric", "granularity"])["value"].mean()
+
+    metrics_present = [m for m in CORRELATION_METRIC_ORDER if m in df["metric"].unique()]
+
+    lines = []
+    lines.append("\\begin{table}[t]")
+    lines.append("\\centering")
+    lines.append("\\resizebox{\\columnwidth}{!}{%")
+    lines.append("\\begin{tabular}{llrr}")
+    lines.append("\\toprule")
+    header = [
+        "Metric", "\\shortstack{Human\\\\Axis}",
+        "\\shortstack{Segment-\\\\Corr}", "\\shortstack{System-\\\\Corr}",
+    ]
+    lines.append(" & ".join(f"\\textbf{{{h}}}" for h in header) + " \\\\")
+    lines.append("\\midrule")
+
+    for i, metric in enumerate(metrics_present):
+        if i > 0:
+            lines.append("\\midrule")
+        axis_matched = metric in AXIS_MATCHED_METRICS
+        metric_disp = (
+            None if axis_matched
+            else f"\\multirow{{{len(CORRELATION_AXIS_ORDER)}}}{{*}}{{{CORRELATION_METRIC_DISPLAY[metric]}}}"
+        )
+        for k, axis in enumerate(CORRELATION_AXIS_ORDER):
+            seg = avg.get((axis, metric, "segment"))
+            sys_ = avg.get((axis, metric, "system"))
+            seg_str = f"{seg * 100:.1f}" if seg is not None else "--"
+            sys_str = f"{sys_ * 100:.1f}" if sys_ is not None else "--"
+            if axis_matched:
+                row_metric_cell = f"{CORRELATION_METRIC_DISPLAY[metric]}\\textsubscript{{{CORRELATION_AXIS_DISPLAY[axis]}}}"
+            else:
+                row_metric_cell = metric_disp if k == 0 else ""
+            lines.append(
+                " & ".join([row_metric_cell, CORRELATION_AXIS_DISPLAY[axis], seg_str, sys_str])
+                + " \\\\"
+            )
+
+    lines.append("\\bottomrule")
+    lines.append("\\end{tabular}%")
+    lines.append("}")
+    lines.append(
+        "\\caption{Correlation (\\%) between human Style/Meaning/Overall judgments and automatic "
+        "metrics, averaged over the eight languages and four systems in the human evaluation. "
+        "For LLM-judge, the predicted score matches the human axis in each row (e.g.\\ predicted "
+        "Style vs.\\ human Style); chrF and COMET-Kiwi give a single quality score per item that "
+        "is compared against all three human axes. Segment-level: mean Kendall's $\\tau$ "
+        "(within-item, across systems). System-level: soft pairwise accuracy (SPA).}"
+    )
+    lines.append("\\label{tab:correlation}")
+    lines.append("\\end{table}")
+    return "\n".join(lines)
+
+
+CORRELATION_LANG_COLS = ["zh", "es", "hi", "fr", "de", "it", "cs", "ar"]
+
+NODE_COMBO_LANG_COLS = ["zh", "es", "hi", "fr", "de", "it", "cs"]
+
+NODE_COMBO_MODEL_ORDER = ["llama", "tower", "gemini-2.5-flash", "gpt52"]
+NODE_COMBO_MODEL_KEY = {
+    "llama": "gold-transcript-llama",
+    "tower": "gold-transcript-tower",
+    "gemini-2.5-flash": "gold-text-gemini",
+    "gpt52": "gold-text-chatgpt",
+}
+
+# Row order reflects the combinatorial structure directly: fluent baseline, then all 3
+# single-type combos, then all 3 pairs, then the triple, then the natural disfluent
+# transcript. Within the singles and pairs groups, the EDITED-vs-not contrast is still
+# visible (e.g. Edited Nodes Only scores well below Intj Only / Prn Only).
+NODE_COMBO_TYPE_ORDER = [
+    "Fluent",
+    "Intj Only", "Prn Only", "Edited Nodes Only",
+    "Intj PRN", "Edited Intj", "Edited PRN",
+    "Disfluent",
+]
+# The raw CSV's labels mix casing inconsistently ("Intj" vs "PRN" vs "Edited Nodes Only" vs
+# "Edited PRN"). Normalize every label to the paper's own notation (INTJ/PRN/EDITED, per the
+# methods section) instead of passing the raw strings through.
+# The synthetic triple-combo (Edited PRN Intj) is omitted: once the source-text cleaning bug
+# was fixed, it scores within noise of the natural Disfluent transcript, so only Disfluent
+# is kept to represent that point in the combination space.
+NODE_COMBO_TYPE_DISPLAY = {
+    "Fluent": "Fluent",
+    "Disfluent": "Disfluent",
+    "Intj Only": "INTJ Only",
+    "Prn Only": "PRN Only",
+    "Edited Nodes Only": "EDITED Only",
+    "Intj PRN": "INTJ + PRN",
+    "Edited Intj": "EDITED + INTJ",
+    "Edited PRN": "EDITED + PRN",
+}
+
+NODE_COMBO_TYPE_GROUP = {
+    "Fluent": "fluent",
+    "Intj Only": "single", "Prn Only": "single", "Edited Nodes Only": "single",
+    "Intj PRN": "pair", "Edited Intj": "pair", "Edited PRN": "pair",
+    "Disfluent": "disfluent",
+}
+
+
+def build_node_combos_table(csv_path):
+    df = pd.read_csv(csv_path)
+    ncols = 2 + len(NODE_COMBO_LANG_COLS)
+
+    lines = []
+    lines.append("\\begin{table*}[t]")
+    lines.append("\\centering")
+    lines.append("\\resizebox{\\textwidth}{!}{%")
+    lines.append("\\begin{tabular}{ll" + "r" * len(NODE_COMBO_LANG_COLS) + "}")
+    lines.append("\\toprule")
+    header = ["Model", "Disfluency Type"] + [c.upper() for c in NODE_COMBO_LANG_COLS]
+    lines.append(" & ".join(f"\\textbf{{{h}}}" for h in header) + " \\\\")
+    lines.append("\\midrule")
+
+    for i, model in enumerate(NODE_COMBO_MODEL_ORDER):
+        if i > 0:
+            lines.append("\\midrule")
+        model_disp = MODELS[NODE_COMBO_MODEL_KEY[model]]["display"]
+        model_rows = df[df["model"] == model]
+
+        # Color bounds computed per model (not globally), so each model's own EDITED-vs-not
+        # contrast is visible regardless of how its absolute scores compare to other models.
+        col_bounds = {}
+        for lang in NODE_COMBO_LANG_COLS:
+            values = [v for v in model_rows[lang] if not pd.isna(v)]
+            if values:
+                col_bounds[lang] = compute_bounds(values, higher_is_better=True)
+
+        types_present = [t for t in NODE_COMBO_TYPE_ORDER if t in model_rows["disfluency_type"].values]
+        prev_group = None
+        for k, dtype in enumerate(types_present):
+            group = NODE_COMBO_TYPE_GROUP[dtype]
+            if k > 0 and group != prev_group:
+                lines.append(f"\\cmidrule{{2-{ncols}}}")
+            prev_group = group
+            row = model_rows[model_rows["disfluency_type"] == dtype].iloc[0]
+            cells = []
+            for lang in NODE_COMBO_LANG_COLS:
+                val = row[lang]
+                cell = fmt_cell(val)
+                if lang in col_bounds and not (pd.isna(val) or val == ""):
+                    worst, best = col_bounds[lang]
+                    cell = colorize(cell, worst, best)
+                cells.append(cell)
+            model_cell = f"\\multirow{{{len(types_present)}}}{{*}}{{{model_disp}}}" if k == 0 else ""
+            dtype_disp = NODE_COMBO_TYPE_DISPLAY.get(dtype, dtype)
+            lines.append(" & ".join([model_cell, dtype_disp] + cells) + " \\\\")
+
+    lines.append("\\bottomrule")
+    lines.append("\\end{tabular}%")
+    lines.append("}")
+    lines.append(
+        "\\caption{COMET-Kiwi scores when the English source contains only specific "
+        "combinations of EDITED/INTJ/PRN disfluency nodes, text-only (gold transcript as "
+        "input). Fluent and Disfluent are the unmodified reference transcripts.}"
+    )
+    lines.append("\\label{tab:node_combos}")
+    lines.append("\\end{table*}")
+    return "\n".join(lines)
+
+
+def build_correlation_per_language_table(csv_path):
+    df = pd.read_csv(csv_path)
+    pivot = df.set_index(["human_axis", "metric", "granularity", "lang"])["value"]
+
+    metrics_present = [m for m in CORRELATION_METRIC_ORDER if m in df["metric"].unique()]
+    ncols = 2 + len(CORRELATION_LANG_COLS)
+
+    lines = []
+    lines.append("\\begin{table*}[t]")
+    lines.append("\\centering")
+    lines.append("\\resizebox{\\textwidth}{!}{%")
+    lines.append("\\begin{tabular}{ll" + "r" * len(CORRELATION_LANG_COLS) + "}")
+    lines.append("\\toprule")
+    header = ["Metric", "Human Axis"] + [c.upper() for c in CORRELATION_LANG_COLS]
+    lines.append(" & ".join(f"\\textbf{{{h}}}" for h in header) + " \\\\")
+
+    for granularity, granularity_disp in [("segment", "Segment-Corr"), ("system", "System-Corr")]:
+        lines.append("\\midrule")
+        lines.append(f"\\multicolumn{{{ncols}}}{{c}}{{\\textit{{{granularity_disp}}}}} \\\\")
+        lines.append("\\midrule")
+        for i, metric in enumerate(metrics_present):
+            if i > 0:
+                lines.append("\\cmidrule{2-" + str(ncols) + "}")
+            axis_matched = metric in AXIS_MATCHED_METRICS
+            metric_disp = (
+                None if axis_matched
+                else f"\\multirow{{{len(CORRELATION_AXIS_ORDER)}}}{{*}}{{{CORRELATION_METRIC_DISPLAY[metric]}}}"
+            )
+            for k, axis in enumerate(CORRELATION_AXIS_ORDER):
+                cells = []
+                for lang in CORRELATION_LANG_COLS:
+                    val = pivot.get((axis, metric, granularity, lang))
+                    cells.append(f"{val * 100:.1f}" if val is not None else "--")
+                if axis_matched:
+                    row_metric_cell = (
+                        f"{CORRELATION_METRIC_DISPLAY[metric]}\\textsubscript{{{CORRELATION_AXIS_DISPLAY[axis]}}}"
+                    )
+                else:
+                    row_metric_cell = metric_disp if k == 0 else ""
+                lines.append(
+                    " & ".join([row_metric_cell, CORRELATION_AXIS_DISPLAY[axis]] + cells) + " \\\\"
+                )
+
+    lines.append("\\bottomrule")
+    lines.append("\\end{tabular}%")
+    lines.append("}")
+    lines.append(
+        "\\caption{Correlation (\\%) between human Style/Meaning/Overall judgments and automatic "
+        "metrics, averaged over the eight languages and four systems in the human evaluation. "
+        "Segment-level: mean Kendall's $\\tau$ (within-item, across systems). System-level: "
+        "soft pairwise accuracy (SPA).}"
+    )
+    lines.append("\\label{tab:correlation_per_language}")
+    lines.append("\\end{table*}")
+    return "\n".join(lines)
+
+
+def create_latex_tables(comet_csv, chrf_csv, asr_csv, llm_judge_style_csv, llm_judge_meaning_csv, output_dir):
     os.makedirs(output_dir, exist_ok=True)
 
     with open(os.path.join(output_dir, "comet_table.tex"), "w", encoding="utf-8") as f:
         f.write(build_translation_table(comet_csv, "comet"))
 
     with open(os.path.join(output_dir, "comet_main_table.tex"), "w", encoding="utf-8") as f:
-        f.write(build_main_comet_table(comet_csv))
+        f.write(build_main_translation_table(comet_csv, "comet"))
 
     with open(os.path.join(output_dir, "chrf_table.tex"), "w", encoding="utf-8") as f:
         f.write(build_translation_table(chrf_csv, "chrf"))
 
+    with open(os.path.join(output_dir, "chrf_main_table.tex"), "w", encoding="utf-8") as f:
+        f.write(build_main_translation_table(chrf_csv, "chrf"))
+
     with open(os.path.join(output_dir, "asr_table.tex"), "w", encoding="utf-8") as f:
         f.write(build_asr_table(asr_csv))
 
-    print(f"Saved comet_table.tex, comet_main_table.tex, chrf_table.tex, asr_table.tex to {output_dir}")
+    with open(os.path.join(output_dir, "llm_judge_table.tex"), "w", encoding="utf-8") as f:
+        f.write(build_llm_judge_combined_table(llm_judge_style_csv, llm_judge_meaning_csv))
+
+    correlation_csv = "results/correlation/correlation_results.csv"
+    if os.path.exists(correlation_csv):
+        with open(os.path.join(output_dir, "correlation_table.tex"), "w", encoding="utf-8") as f:
+            f.write(build_correlation_table(correlation_csv))
+        with open(os.path.join(output_dir, "correlation_per_language_table.tex"), "w", encoding="utf-8") as f:
+            f.write(build_correlation_per_language_table(correlation_csv))
+
+    node_combos_csv = "results/node_combos/analysis_node_combos_en-x_structured.csv"
+    if os.path.exists(node_combos_csv):
+        with open(os.path.join(output_dir, "node_combos_table.tex"), "w", encoding="utf-8") as f:
+            f.write(build_node_combos_table(node_combos_csv))
+
+    print(f"Saved comet, chrf, asr, llm-judge, correlation, and node-combos tables to {output_dir}")
 
 
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Render COMET/chrF/ASR result tables as LaTeX.")
+    parser = argparse.ArgumentParser(description="Render COMET/chrF/ASR/LLM-judge result tables as LaTeX.")
     parser.add_argument("--comet", default="results/translations/evaluation_results_comet_table.csv")
     parser.add_argument("--chrf", default="results/translations/evaluation_results_chrf_table.csv")
     parser.add_argument("--asr", default="results/ASR_results/asr_scores.csv")
+    parser.add_argument("--llm-judge-style", default="results/llm_judge/llm_judge_style_table.csv")
+    parser.add_argument("--llm-judge-meaning", default="results/llm_judge/llm_judge_meaning_table.csv")
     parser.add_argument("--output-dir", default="results/latex_tables")
     args = parser.parse_args()
-    create_latex_tables(args.comet, args.chrf, args.asr, args.output_dir)
+    create_latex_tables(
+        args.comet, args.chrf, args.asr, args.llm_judge_style, args.llm_judge_meaning, args.output_dir
+    )

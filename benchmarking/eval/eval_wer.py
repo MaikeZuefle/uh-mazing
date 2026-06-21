@@ -44,6 +44,8 @@ def evaluate_all_wer(base_dir, csv_path, output_csv):
         print(f"Processing model: {model_name}")
 
         for filename in os.listdir(model_path):
+            if filename.endswith(".log"):
+                continue
             if not filename.endswith(".xml"):
                 raise ValueError(f"Unexpected file type in {model_path}: {filename}")
 
