@@ -27,7 +27,8 @@ MODELS_EN_X = [
 
 MODELS_X_EN = [
     "gold-transcript-llama",
-    "gold-transcript-tower"
+    "gold-transcript-tower",
+    "gold-transcript-chatgpt"
 ]
 
 def normalize_score(score, score_name):
@@ -77,6 +78,7 @@ def transform_results(input_csv, output_csv, metric=None):
         ("whisper_cascaded", "tower"): "whisper-tower",
         ("gold_cascaded", "llama"): "gold-transcript-llama",
         ("gold_cascaded", "tower"): "gold-transcript-tower",
+        ("gold_cascaded", "chatgpt"): "gold-transcript-chatgpt",
         ("end2end", "canary"): "canary",
         ("end2end", "owsm"): "owsm",
         ("speechllm", "phi_multimodal"): "phi",

@@ -3,7 +3,7 @@
 INPUT=generated_output # folder with model subfolders
 REFERENCES=../translation_data/references.csv
 OUTPUT=results/translations/evaluation_results.csv
-ONLY_CHRF=true  # set to true to skip COMET and only (re)compute ChrF scores
+ONLY_CHRF=false  # set to true to skip COMET and only (re)compute ChrF scores
 
 cd "$(dirname "$0")/.." || exit 1
 
