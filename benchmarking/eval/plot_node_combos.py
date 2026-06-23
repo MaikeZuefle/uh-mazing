@@ -25,7 +25,7 @@ CONDITION_DISPLAY = {
 }
 # Each combination bar is split into colored segments for the base types it contains, in
 # this fixed order, so e.g. "EDITED+INTJ" always shows red then blue, left to right.
-BASE_TYPE_COLOR = {"EDITED": "tab:red", "INTJ": "tab:blue", "PRN": "tab:orange"}
+BASE_TYPE_COLOR = {"EDITED": "#C53A32", "INTJ": "tab:blue", "PRN": "tab:orange"}
 CONDITION_BASE_TYPES = {
     "Intj Only": ["INTJ"], "Prn Only": ["PRN"], "Edited Nodes Only": ["EDITED"],
     "Intj PRN": ["INTJ", "PRN"], "Edited Intj": ["EDITED", "INTJ"], "Edited PRN": ["EDITED", "PRN"],
@@ -72,6 +72,7 @@ def plot_node_combos(input_csv, output_path):
     stdevs = [statistics.stdev(deltas[c]) for c in conditions]
     labels = [CONDITION_DISPLAY[c] for c in conditions]
 
+    plt.rcParams["font.family"] = "DejaVu Sans"
     fig, ax = plt.subplots(figsize=(11, 5.8))
     ax.set_axisbelow(True)
     ax.grid(True, axis="y", alpha=0.25, linewidth=0.6)
@@ -95,9 +96,11 @@ def plot_node_combos(input_csv, output_path):
         plt.Rectangle((0, 0), 1, 1, color=BASE_TYPE_COLOR[t], label=f"{t} ({BASE_TYPE_GLOSS[t]})")
         for t in ["EDITED", "INTJ", "PRN"]
     ]
-    ax.legend(handles=legend_handles, loc="upper center", ncol=3, fontsize=18,
-              handlelength=1.0, handleheight=1.0, framealpha=0.9,
-              columnspacing=0.8, handletextpad=0.4)
+    legend = ax.legend(handles=legend_handles, loc="upper center", ncol=3, fontsize=18,
+                        handlelength=1.0, handleheight=1.0,
+                        columnspacing=0.8, handletextpad=0.4)
+    legend.get_frame().set_facecolor("#e8e8e8")
+    legend.get_frame().set_edgecolor("none")
 
     fig.tight_layout()
     fig.savefig(output_path, bbox_inches="tight")

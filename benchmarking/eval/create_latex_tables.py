@@ -97,7 +97,8 @@ def compute_bounds(values, higher_is_better=True, floor_quantile=FLOOR_QUANTILE)
     return s.quantile(1 - floor_quantile), s.min()
 
 
-def colorize(value_str, worst, best, color="blue", max_intensity=25):
+# Requires \definecolor{tabblue}{HTML}{1F77B4} in the LaTeX preamble (matplotlib's tab:blue).
+def colorize(value_str, worst, best, color="tabblue", max_intensity=25):
     if value_str == "--":
         return value_str
     norm = 0.0 if best == worst else (float(value_str) - worst) / (best - worst)

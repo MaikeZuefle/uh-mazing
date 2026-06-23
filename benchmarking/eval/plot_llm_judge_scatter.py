@@ -50,6 +50,9 @@ def build_lang_colors():
         span = np.linspace(0.25, 1.0, n) if n > 1 else [0.65]
         shades = plt.get_cmap(cmaps[group])(span)
         colors.update(zip(langs, shades))
+    # Hindi falls at the dark extreme of the Oranges colormap, which reads as red/brown
+    # rather than orange; override it to the same red used for EDITED in the bar plot.
+    colors["hi"] = "#C53A32"
     return colors
 
 
@@ -96,14 +99,14 @@ def plot_scatter(input_csv, output_path):
     system_handles = [
         plt.Line2D([], [], marker=SYSTEM_MARKER[s], color="white", markerfacecolor="white",
                     markeredgecolor="black", markersize=12 * (SYSTEM_MARKER_SIZE[s] / 190) ** 0.5,
-                    label=SYSTEM_DISPLAY[s])
+                    linestyle="none", label=SYSTEM_DISPLAY[s])
         for s in SYSTEM_DISPLAY
     ]
     ideal_handle = plt.Line2D([], [], marker="*", color="white", markerfacecolor="gold",
-                               markeredgecolor="none", markersize=16, label="Ideal")
+                               markeredgecolor="none", markersize=16, linestyle="none", label="Ideal")
     lang_handles = [
         plt.Line2D([], [], marker="o", color="white", markerfacecolor=LANG_COLOR[l],
-                    markeredgecolor="none", markersize=12, label=LANG_DISPLAY[l])
+                    markeredgecolor="none", markersize=12, linestyle="none", label=LANG_DISPLAY[l])
         for l in LANG_DISPLAY
     ]
     legend_fontsize = 16
