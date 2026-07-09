@@ -6,9 +6,9 @@ cd "$(dirname "$0")" || exit 1
 
 INPUT=../references.csv
 OUTPUT=.
-STANZA_DIR=/net/tscratch/people/plgzuefle/stanza_resources
+STANZA_DIR=/home/jhu/mzufle1/uh-mazing/stanza
 
-conda run -n comet python3 dependency_parsing.py \
+python dependency_parsing.py \
     --input "$INPUT" \
     --output "$OUTPUT" \
     --stanza_dir "$STANZA_DIR" \
