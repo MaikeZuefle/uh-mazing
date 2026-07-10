@@ -1,9 +1,0 @@
-target_lang,n_utts_total,n_utts_with_en_coherent_span,n_utts_with_target_coherent_span,n_utts_with_both,n_role_pairs
-ar,80,73,78,72,1509
-cs,80,73,68,67,1061
-de,80,73,61,60,580
-es,80,73,70,67,1249
-fr,80,73,77,71,1586
-hi,80,73,78,73,1397
-it,80,73,75,73,1340
-zh,80,73,72,69,1340
