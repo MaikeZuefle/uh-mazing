@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-LANG_COLS = ["zh", "es", "hi", "fr", "de", "it", "sw", "cs", "ar"]
+LANG_COLS = ["zh", "es", "hi", "fr", "de", "it", "cs", "ar"]
 
 # audio-gemini / audio-chatgpt (the "with extra context" audio condition) are intentionally
 # excluded from the tables below -- only the audio-noextra condition is reported.
@@ -28,6 +28,7 @@ MODELS = {
     "audio-noextra-gemini": {"category": "Commercial", "display": "\\textsc{Gemini}\\textsubscript{Audio}", "subgroup": "audio"},
     "audio-noextra-chatgpt": {"category": "Commercial", "display": "\\textsc{ChatGPT}\\textsubscript{Audio}", "subgroup": "audio"},
     "gold-transcript-chatgpt": {"category": "Commercial", "display": "\\textsc{ChatGPT}\\textsubscript{Gold}", "subgroup": "gold"},
+    "gold-transcript-gemini": {"category": "Commercial", "display": "\\textsc{Gemini}\\textsubscript{Gold}", "subgroup": "gold"},
 }
 
 ASR_MODEL_DISPLAY = {
@@ -397,7 +398,7 @@ def build_asr_table(csv_path):
     return "\n".join(lines)
 
 
-LLM_JUDGE_LANG_COLS = ["zh", "es", "hi", "fr", "de", "it", "sw", "cs", "ar"]
+LLM_JUDGE_LANG_COLS = ["zh", "es", "hi", "fr", "de", "it", "cs", "ar"]
 
 LLM_JUDGE_SYSTEM_ORDER = [
     "gold_cascaded/tower", "end2end/canary", "speechllm/phi_multimodal", "end2end/gemini-2.5-flash",
@@ -470,14 +471,20 @@ def build_llm_judge_combined_table(style_csv, meaning_csv):
     return "\n".join(lines)
 
 
-CORRELATION_METRIC_ORDER = ["llm_judge", "chrf", "comet"]
-CORRELATION_METRIC_DISPLAY = {"llm_judge": "LLM-judge", "chrf": "chrF", "comet": "COMET-Kiwi"}
+CORRELATION_METRIC_ORDER = ["llm_judge", "llm_judge_ref", "chrf", "comet"]
+CORRELATION_METRIC_DISPLAY = {
+    "llm_judge": "LLM-judge",
+    "llm_judge_ref": "LLM-judge (ref)",
+    "chrf": "chrF",
+    "comet": "COMET-Kiwi",
+}
 CORRELATION_AXIS_ORDER = ["style", "meaning", "overall"]
 CORRELATION_AXIS_DISPLAY = {"style": "Style", "meaning": "Meaning", "overall": "Overall"}
-# llm_judge predicts a different value per row (matching the human axis), so its row label
-# should say so explicitly (e.g. "LLM-judge-Style"); chrf/comet predict one fixed value per
-# item regardless of which human axis it's compared against, so they keep one shared label.
-AXIS_MATCHED_METRICS = {"llm_judge"}
+# llm_judge and llm_judge_ref each predict a per-axis value (style/meaning/overall), so their
+# row labels include the axis (e.g. "LLM-judge\textsubscript{Style}"); chrf/comet produce one
+# fixed quality score per item and are compared against all three human axes without axis labels.
+AXIS_MATCHED_METRICS = {"llm_judge", "llm_judge_ref"}
+METRIC_HAS_REF = {"llm_judge": False, "llm_judge_ref": True, "chrf": True, "comet": False}
 
 
 def build_correlation_table(csv_path):
@@ -487,14 +494,21 @@ def build_correlation_table(csv_path):
 
     metrics_present = [m for m in CORRELATION_METRIC_ORDER if m in df["metric"].unique()]
 
+    # best value per (axis, granularity) for bolding
+    best = {}
+    for axis in CORRELATION_AXIS_ORDER:
+        for gran in ("segment", "system"):
+            vals = [v for m in metrics_present for v in [avg.get((axis, m, gran))] if v is not None]
+            best[(axis, gran)] = max(vals) if vals else None
+
     lines = []
     lines.append("\\begin{table}[t]")
     lines.append("\\centering")
     lines.append("\\resizebox{\\columnwidth}{!}{%")
-    lines.append("\\begin{tabular}{llrr}")
+    lines.append("\\begin{tabular}{llcrr}")
     lines.append("\\toprule")
     header = [
-        "Metric", "\\shortstack{Human\\\\Axis}",
+        "Metric", "Ref?", "\\shortstack{Human\\\\Axis}",
         "\\shortstack{Segment-\\\\Corr}", "\\shortstack{System-\\\\Corr}",
     ]
     lines.append(" & ".join(f"\\textbf{{{h}}}" for h in header) + " \\\\")
@@ -508,17 +522,24 @@ def build_correlation_table(csv_path):
             None if axis_matched
             else f"\\multirow{{{len(CORRELATION_AXIS_ORDER)}}}{{*}}{{{CORRELATION_METRIC_DISPLAY[metric]}}}"
         )
+        ref_symbol = "$\\checkmark$" if METRIC_HAS_REF.get(metric, False) else "$\\times$"
+        ref_disp = f"\\multirow{{{len(CORRELATION_AXIS_ORDER)}}}{{*}}{{{ref_symbol}}}"
         for k, axis in enumerate(CORRELATION_AXIS_ORDER):
             seg = avg.get((axis, metric, "segment"))
             sys_ = avg.get((axis, metric, "system"))
             seg_str = f"{seg * 100:.1f}" if seg is not None else "--"
             sys_str = f"{sys_ * 100:.1f}" if sys_ is not None else "--"
+            if seg is not None and best.get((axis, "segment")) == seg:
+                seg_str = f"\\textbf{{{seg_str}}}"
+            if sys_ is not None and best.get((axis, "system")) == sys_:
+                sys_str = f"\\textbf{{{sys_str}}}"
             if axis_matched:
                 row_metric_cell = f"{CORRELATION_METRIC_DISPLAY[metric]}\\textsubscript{{{CORRELATION_AXIS_DISPLAY[axis]}}}"
             else:
                 row_metric_cell = metric_disp if k == 0 else ""
+            ref_cell = ref_disp if k == 0 else ""
             lines.append(
-                " & ".join([row_metric_cell, CORRELATION_AXIS_DISPLAY[axis], seg_str, sys_str])
+                " & ".join([row_metric_cell, ref_cell, CORRELATION_AXIS_DISPLAY[axis], seg_str, sys_str])
                 + " \\\\"
             )
 
@@ -651,16 +672,24 @@ def build_correlation_per_language_table(csv_path):
     pivot = df.set_index(["human_axis", "metric", "granularity", "lang"])["value"]
 
     metrics_present = [m for m in CORRELATION_METRIC_ORDER if m in df["metric"].unique()]
-    ncols = 2 + len(CORRELATION_LANG_COLS)
+    ncols = 3 + len(CORRELATION_LANG_COLS)
 
     lines = []
     lines.append("\\begin{table*}[t]")
     lines.append("\\centering")
     lines.append("\\resizebox{\\textwidth}{!}{%")
-    lines.append("\\begin{tabular}{ll" + "r" * len(CORRELATION_LANG_COLS) + "}")
+    lines.append("\\begin{tabular}{llc" + "r" * len(CORRELATION_LANG_COLS) + "}")
     lines.append("\\toprule")
-    header = ["Metric", "Human Axis"] + [c.upper() for c in CORRELATION_LANG_COLS]
+    header = ["Metric", "Ref?", "Human Axis"] + [c.upper() for c in CORRELATION_LANG_COLS]
     lines.append(" & ".join(f"\\textbf{{{h}}}" for h in header) + " \\\\")
+
+    # best value per (axis, granularity, lang) for bolding
+    best_lang = {}
+    for axis in CORRELATION_AXIS_ORDER:
+        for gran in ("segment", "system"):
+            for lang in CORRELATION_LANG_COLS:
+                vals = [v for m in metrics_present for v in [pivot.get((axis, m, gran, lang))] if v is not None]
+                best_lang[(axis, gran, lang)] = max(vals) if vals else None
 
     for granularity, granularity_disp in [("segment", "Segment-Corr"), ("system", "System-Corr")]:
         lines.append("\\midrule")
@@ -668,25 +697,31 @@ def build_correlation_per_language_table(csv_path):
         lines.append("\\midrule")
         for i, metric in enumerate(metrics_present):
             if i > 0:
-                lines.append("\\cmidrule{2-" + str(ncols) + "}")
+                lines.append("\\cmidrule{3-" + str(ncols) + "}")
             axis_matched = metric in AXIS_MATCHED_METRICS
             metric_disp = (
                 None if axis_matched
                 else f"\\multirow{{{len(CORRELATION_AXIS_ORDER)}}}{{*}}{{{CORRELATION_METRIC_DISPLAY[metric]}}}"
             )
+            ref_symbol = "$\\checkmark$" if METRIC_HAS_REF.get(metric, False) else "$\\times$"
+            ref_disp = f"\\multirow{{{len(CORRELATION_AXIS_ORDER)}}}{{*}}{{{ref_symbol}}}"
             for k, axis in enumerate(CORRELATION_AXIS_ORDER):
                 cells = []
                 for lang in CORRELATION_LANG_COLS:
                     val = pivot.get((axis, metric, granularity, lang))
-                    cells.append(f"{val * 100:.1f}" if val is not None else "--")
+                    cell = f"{val * 100:.1f}" if val is not None else "--"
+                    if val is not None and best_lang.get((axis, granularity, lang)) == val:
+                        cell = f"\\textbf{{{cell}}}"
+                    cells.append(cell)
                 if axis_matched:
                     row_metric_cell = (
                         f"{CORRELATION_METRIC_DISPLAY[metric]}\\textsubscript{{{CORRELATION_AXIS_DISPLAY[axis]}}}"
                     )
                 else:
                     row_metric_cell = metric_disp if k == 0 else ""
+                ref_cell = ref_disp if k == 0 else ""
                 lines.append(
-                    " & ".join([row_metric_cell, CORRELATION_AXIS_DISPLAY[axis]] + cells) + " \\\\"
+                    " & ".join([row_metric_cell, ref_cell, CORRELATION_AXIS_DISPLAY[axis]] + cells) + " \\\\"
                 )
 
     lines.append("\\bottomrule")

@@ -295,12 +295,43 @@ def evaluate_all_translations(base_dir, csv_path, output_csv, only_chrf=False, p
                         chrf_score = compute_chrf(hypotheses, references, target_lang)
 
                         if only_chrf:
-                            chrf_updates[eval_key] = chrf_score
                             print(f"      CHRF++ score: {chrf_score:.4f}")
-                            if per_item_csv:
-                                chrf_per_item = compute_chrf_per_item(hypotheses, references, target_lang)
-                                for sample_id, item_chrf in zip(sample_ids, chrf_per_item):
-                                    per_item_chrf_updates[(eval_key, sample_id)] = item_chrf
+                            if eval_key in key_to_idx:
+                                # Update chrf score in existing row
+                                chrf_updates[eval_key] = chrf_score
+                                if per_item_csv:
+                                    chrf_per_item = compute_chrf_per_item(hypotheses, references, target_lang)
+                                    for sample_id, item_chrf in zip(sample_ids, chrf_per_item):
+                                        per_item_chrf_updates[(eval_key, sample_id)] = item_chrf
+                            else:
+                                # New entry not yet in CSV: append it directly
+                                append_result(output_csv, {
+                                    "model_type": model_type,
+                                    "model": model_name,
+                                    "modality": "",
+                                    "source_lang": source_lang,
+                                    "target_lang": target_lang,
+                                    "lang_pair": f"{source_lang}-{target_lang}",
+                                    "prompt_type": prompt_type,
+                                    "chrf_score": chrf_score,
+                                    "comet_score": None,
+                                    "filename": filename,
+                                })
+                                if per_item_csv:
+                                    chrf_per_item = compute_chrf_per_item(hypotheses, references, target_lang)
+                                    append_per_item_results(per_item_csv, [
+                                        {
+                                            "model_type": model_type,
+                                            "model": model_name,
+                                            "target_lang": target_lang,
+                                            "prompt_type": prompt_type,
+                                            "filename": filename,
+                                            "sample_id": sample_id,
+                                            "chrf_score": item_chrf,
+                                            "comet_score": None,
+                                        }
+                                        for sample_id, item_chrf in zip(sample_ids, chrf_per_item)
+                                    ])
                         else:
                             comet_score, comet_per_item = compute_comet_qe(comet_model, sources, hypotheses)
                             append_result(output_csv, {

@@ -4,7 +4,7 @@ INPUT=generated_output # folder with model subfolders
 REFERENCES=../translation_data/references.csv
 OUTPUT=results/translations/evaluation_results.csv
 PER_ITEM_OUTPUT=results/translations/evaluation_results_per_item.csv  # per-item chrF/COMET, for human-eval correlation
-ONLY_CHRF=true  # set to true to skip COMET and only (re)compute ChrF scores
+ONLY_CHRF=false  # set to true to skip COMET and only (re)compute ChrF scores
 
 cd "$(dirname "$0")/.." || exit 1
 

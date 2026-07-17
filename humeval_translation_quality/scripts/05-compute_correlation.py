@@ -192,6 +192,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Correlate human Style/Meaning/Overall judgments with automatic metrics.")
     parser.add_argument("--llm-judge-csv", default=DEFAULT_LLM_JUDGE_CSV, help="Per-item LLM-judge scores (from eval_llm_judge.py)")
+    parser.add_argument("--llm-judge-label", default="llm_judge", help="Metric label for llm-judge in output (e.g. llm_judge_ref)")
+    parser.add_argument("--llm-judge-ref-csv", default=None, help="Optional second per-item LLM-judge CSV (reference-based) shown alongside the first")
+    parser.add_argument("--llm-judge-ref-label", default="llm_judge_ref", help="Metric label for the reference-based judge")
     parser.add_argument("--translations-per-item-csv", default=DEFAULT_TRANSLATIONS_PER_ITEM_CSV, help="Per-item chrF/COMET scores (from eval_translations.py --per-item-output)")
     parser.add_argument("--human-json", default=DEFAULT_HUMAN_JSON, help="Human annotation JSON (annotations_human_scoring.json)")
     parser.add_argument("--output", default=DEFAULT_OUTPUT_CSV, help="Where to save the long-format correlation results CSV")
@@ -199,6 +202,7 @@ if __name__ == "__main__":
 
     human_ratings, item_id_lookup = load_human_ratings_and_item_ids(args.human_json)
     llm_judge_scores = load_llm_judge_per_item(args.llm_judge_csv)
+    llm_judge_ref_scores = load_llm_judge_per_item(args.llm_judge_ref_csv) if args.llm_judge_ref_csv else None
     chrf_scores, comet_scores = load_translation_metrics_per_item(args.translations_per_item_csv)
     if not chrf_scores and not comet_scores:
         print(f"No chrF/COMET per-item scores found in {args.translations_per_item_csv} -- run "
@@ -213,8 +217,10 @@ if __name__ == "__main__":
         print(f"\n{'=' * 70}\nHuman {human_axis.upper()} vs. automatic metrics\n{'=' * 70}")
 
         metric_sources = {
-            "llm_judge": {k: v[human_axis] for k, v in llm_judge_scores.items()},
+            args.llm_judge_label: {k: v[human_axis] for k, v in llm_judge_scores.items()},
         }
+        if llm_judge_ref_scores is not None:
+            metric_sources[args.llm_judge_ref_label] = {k: v[human_axis] for k, v in llm_judge_ref_scores.items()}
         if chrf_scores:
             metric_sources["chrf"] = chrf_scores
         if comet_scores:
