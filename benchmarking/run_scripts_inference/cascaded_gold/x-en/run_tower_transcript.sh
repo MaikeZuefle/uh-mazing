@@ -2,14 +2,14 @@
 
 # Language dictionary
 declare -A LANGUAGE_DICT=( 
-    # ["zh"]="Mandarin"
-    # ["es"]="Spanish"
-    # ["hi"]="Hindi"
-    # ["fr"]="French"
-    # ["de"]="German"
-    # ["it"]="Italian"
-    # ["cs"]="Czech"
-    # ["ar"]="Arabic"
+    ["zh"]="Mandarin"
+    ["es"]="Spanish"
+    ["hi"]="Hindi"
+    ["fr"]="French"
+    ["de"]="German"
+    ["it"]="Italian"
+    ["cs"]="Czech"
+    ["ar"]="Arabic"
     ["sw"]="Swahili"
 )
 
@@ -20,6 +20,8 @@ PROMPTS=("standard" "disfluency_aware")
 
 # Models for audio modality
 MODELS=("tower")
+
+cd "$(dirname "$0")/../../.." || exit 1
 
 IN_DATA_FOLDER=generated_output/transcript/gold
 

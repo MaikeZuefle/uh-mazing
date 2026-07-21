@@ -11,8 +11,9 @@ MODEL_TYPES = ["commercial_models", "llama", "tower"]
 
 def parse_csv_filename(filename):
     """
-    Parse node-combos_{model}_{prompt_type}_{disfluency_label}-noextra.csv
+    Parse node-combos_{model}_{prompt_type}_{disfluency_label}[-noextra].csv
     Each file corresponds to exactly one disfluency type used as translation source.
+    The "-noextra" suffix is optional -- older/regenerated commercial-model files omit it.
     Returns (model, prompt_type, col_name, out_name) where:
       col_name: actual column in the CSV (e.g. 'text_fluent', 'edited_intj')
       out_name: canonical name for output (e.g. 'EN_fluent', 'edited_intj')
@@ -26,9 +27,7 @@ def parse_csv_filename(filename):
     model = parts[0]
     prompt_type = parts[1]
     disfl_with_suffix = "_".join(parts[2:])
-    if not disfl_with_suffix.endswith("-noextra"):
-        raise ValueError(f"Expected -noextra suffix in filename: {filename}")
-    disfl_label = disfl_with_suffix[:-len("-noextra")]
+    disfl_label = disfl_with_suffix[:-len("-noextra")] if disfl_with_suffix.endswith("-noextra") else disfl_with_suffix
 
     # Map short filename labels to (CSV column name, canonical output name)
     label_map = {

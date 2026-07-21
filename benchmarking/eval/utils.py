@@ -94,8 +94,17 @@ def clean_disfluency_text(text: str) -> str:
     """
     Remove underscore-based disfluency markers.
     Example: _uh_ -> uh
+
+    Multi-token disfluency spans (e.g. "_it_ _'s_ _,_") leave stray whitespace before
+    punctuation once the underscores are stripped (e.g. "it 's ,"). This mirrors the
+    cleanup already applied in read_disfluency_type_transcript() when generating the
+    actual translations, so the text COMET/chrF score against matches what was translated.
     """
-    return normalizer(text.replace("_", "").replace("ـ", ""))
+    text = normalizer(text.replace("_", "").replace("ـ", ""))
+    text = re.sub(r"\s+,", ",", text)
+    text = re.sub(r"\s+\.", ".", text)
+    text = re.sub(r"\s+'", "'", text)
+    return text
 
 
 def load_xml_hypotheses(xml_path):

@@ -31,3 +31,8 @@ requirements_canary.txt
 requirements_phi.txt
 .claude
 benchmarking/results/
+
+# stanza
+stanza
+translation_data/analysis/analysis_results
+translation_data/analysis/per_lang
