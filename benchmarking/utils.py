@@ -1,6 +1,8 @@
 import xml.etree.ElementTree as ET
+import hashlib
 import logging
 import os
+import random
 import sys
 import csv
 import re
@@ -118,6 +120,55 @@ def read_transcript(xml_path):
             input_data.append([sample_id, text])
 
     return input_data
+
+
+def _normalize_sample_id(sample_id):
+    sid = sample_id
+    if sid.endswith(".wav"):
+        sid = sid[:-4]
+    sid = re.sub(r"^sw0", "sw", sid)
+    return sid
+
+
+def load_icl_pool(references_csv_path, trg_lang):
+    target_col = f"{trg_lang.upper()}_disfluent"
+    pool = {}
+    with open(references_csv_path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        if target_col not in reader.fieldnames:
+            raise KeyError(
+                f"Target column {target_col} missing from {references_csv_path}. "
+                f"Available: {reader.fieldnames}"
+            )
+        for row in reader:
+            rid = row["ID"].strip()
+            src = (row.get("EN_disfluent") or "").strip()
+            trg = (row.get(target_col) or "").strip()
+            if rid and src and trg:
+                pool[rid] = (src, trg)
+    return pool
+
+
+def select_icl_examples(pool, current_sample_id, k=2, seed_base=42):
+    norm_id = _normalize_sample_id(current_sample_id)
+    candidates = [rid for rid in pool.keys() if rid != norm_id]
+    if not candidates:
+        return []
+    h = hashlib.md5(f"{seed_base}-{norm_id}".encode("utf-8")).hexdigest()
+    rng = random.Random(int(h, 16))
+    picked = rng.sample(candidates, min(k, len(candidates)))
+    return [pool[rid] for rid in picked]
+
+
+def format_icl_prefix(icl_examples, src_lang, trg_lang):
+    if not icl_examples:
+        return ""
+    src_name = LANGUAGE_DICT.get(src_lang, src_lang)
+    trg_name = LANGUAGE_DICT.get(trg_lang, trg_lang)
+    parts = []
+    for i, (src, trg) in enumerate(icl_examples, 1):
+        parts.append(f"Example {i}:\n{src_name}: {src}\n{trg_name}: {trg}")
+    return "Here are some translation examples:\n\n" + "\n\n".join(parts) + "\n\nNow translate the following:\n"
 
 
 def read_disfluency_type_transcript(csv_path):

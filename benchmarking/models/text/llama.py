@@ -1,4 +1,4 @@
-from utils import read_txt_file
+from utils import read_txt_file, format_icl_prefix
 
 def load_model():
     import torch
@@ -17,15 +17,16 @@ def load_model():
 
 
 
-def generate(pipeline, prompt, example_path, modality, src_lang=None, trg_lang=None, gen_kwargs=None):
+def generate(pipeline, prompt, example_path, modality, src_lang=None, trg_lang=None, gen_kwargs=None, icl_examples=None):
 
     if modality != "text":
         raise NotImplementedError("Llama only supports text!")
-    
+
     example = example_path
 
     system_prompt = "A chat between a curious user and an artificial intelligence assistant. Only return the answer requested. Do not include any explanation or introductions.\n"
-    user_prompt = f"{example}\n{prompt}"
+    icl_prefix = format_icl_prefix(icl_examples or [], src_lang, trg_lang)
+    user_prompt = f"{icl_prefix}{example}\n{prompt}"
     messages = [
         {
             "role": "system",

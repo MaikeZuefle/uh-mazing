@@ -1,6 +1,6 @@
 
 import soundfile as sf
-from utils import read_txt_file
+from utils import read_txt_file, format_icl_prefix
 
 def load_model():
     from transformers import AutoModelForCausalLM, AutoProcessor, GenerationConfig
@@ -18,7 +18,7 @@ def load_model():
 
     return model, processor, generation_config
 
-def generate(model_processor_config, prompt, example_path, modality, src_lang=None, trg_lang=None, gen_kwargs=None):
+def generate(model_processor_config, prompt, example_path, modality, src_lang=None, trg_lang=None, gen_kwargs=None, icl_examples=None):
     if modality != "audio":
         raise NotImplementedError("Phi only supports audio in this implementation!")
 
@@ -29,8 +29,10 @@ def generate(model_processor_config, prompt, example_path, modality, src_lang=No
     assistant_prompt = "<|assistant|>"
     prompt_suffix = "<|end|>"
 
+    icl_prefix = format_icl_prefix(icl_examples or [], src_lang, trg_lang)
+
     if example_path.endswith(".wav"):
-        prompt = f"{user_prompt}<|audio_1|>{prompt}{prompt_suffix}{assistant_prompt}"
+        prompt = f"{user_prompt}{icl_prefix}<|audio_1|>{prompt}{prompt_suffix}{assistant_prompt}"
 
         # Open audio file
         audio, samplerate = sf.read(example_path)
@@ -38,9 +40,9 @@ def generate(model_processor_config, prompt, example_path, modality, src_lang=No
         # Process with the model
         inputs = processor(text=prompt, audios=[(audio, samplerate)], return_tensors='pt').to('cuda:0')
 
-    else: 
+    else:
         example = read_txt_file(example_path)
-        prompt = f"{user_prompt}{example}\n{prompt}{prompt_suffix}{assistant_prompt}"
+        prompt = f"{user_prompt}{icl_prefix}{example}\n{prompt}{prompt_suffix}{assistant_prompt}"
         inputs = processor(text=prompt, audios=None, return_tensors='pt').to('cuda:0')
         
 

@@ -28,6 +28,7 @@ from models.text.tower import load_model as load_tower
 
 from utils import set_up_dirs, set_up_logging, write_to_xml, read_transcript, read_disfluency_type_transcript
 from utils import LANGUAGE_DICT, REQUIRED_DISFLUENCY_COLUMNS
+from utils import load_icl_pool, select_icl_examples
 
 set_seed(42)
 
@@ -98,12 +99,16 @@ def load_model(model_name):
     return model, generate_func
 
 
-def main(in_data_folder, out_folder, model, src_lang, trg_lang, modality, prompt, ablate_disfluencies=False, gen_kwargs=None, decode_label="greedy"):
+def main(in_data_folder, out_folder, model, src_lang, trg_lang, modality, prompt, ablate_disfluencies=False, gen_kwargs=None, decode_label="greedy",
+         icl=False, num_icl_examples=2, icl_references_csv=None, icl_seed=42):
 
 
 
 
     # Setting up folders and logging
+    if icl:
+        decode_label = f"{decode_label}_icl{num_icl_examples}"
+
     output_file_path = set_up_dirs(
         in_data_folder, out_folder, model, src_lang, trg_lang, modality, prompt, decode_label
     )
@@ -173,12 +178,25 @@ def main(in_data_folder, out_folder, model, src_lang, trg_lang, modality, prompt
     logging.info(f"Loading Model.")
     model_instance, generate = load_model(model)
 
+    icl_pool = None
+    if icl:
+        if num_icl_examples <= 0:
+            raise ValueError("num_icl_examples must be > 0 when --icl is set")
+        if not icl_references_csv:
+            raise ValueError("--icl_references_csv must be provided when --icl is set")
+        logging.info(f"Loading ICL pool from {icl_references_csv} for trg_lang={trg_lang}.")
+        icl_pool = load_icl_pool(icl_references_csv, trg_lang)
+        logging.info(f"ICL pool size: {len(icl_pool)} (using {num_icl_examples} examples per sample, seed={icl_seed})")
+
     logging.info(f"Starting Output Generation.")
     outputs = []
 
-    
+
     for file_name, example_path in tqdm(input_data, desc="Generating Outputs"):
-        output = generate(model_instance, instruction, example_path, modality, src_lang=src_lang, trg_lang=trg_lang, gen_kwargs=gen_kwargs).strip()
+        icl_examples = None
+        if icl_pool is not None:
+            icl_examples = select_icl_examples(icl_pool, file_name, k=num_icl_examples, seed_base=icl_seed)
+        output = generate(model_instance, instruction, example_path, modality, src_lang=src_lang, trg_lang=trg_lang, gen_kwargs=gen_kwargs, icl_examples=icl_examples).strip()
         outputs.append((file_name, output))
 
     logging.info(f"Writing Outputs to XML file {output_file_path}.")
@@ -249,6 +267,28 @@ if __name__ == "__main__":
         default=None,
         help="Parameter for decode strategy (temperature, num_beams, or typical_p)",
     )
+    parser.add_argument(
+        "--icl",
+        action="store_true",
+        help="If set, prepend in-context examples drawn from the references CSV.",
+    )
+    parser.add_argument(
+        "--num_icl_examples",
+        type=int,
+        default=2,
+        help="Number of in-context examples to insert before each query (default: 2).",
+    )
+    parser.add_argument(
+        "--icl_references_csv",
+        default="../translation_data/references.csv",
+        help="Path to references.csv used as the ICL pool.",
+    )
+    parser.add_argument(
+        "--icl_seed",
+        type=int,
+        default=42,
+        help="Seed base for deterministic ICL example selection per sample.",
+    )
 
     args = parser.parse_args()
 
@@ -266,6 +306,10 @@ if __name__ == "__main__":
         ablate_disfluencies=args.ablate_disfluencies,
         gen_kwargs=gen_kwargs,
         decode_label=decode_label,
+        icl=args.icl,
+        num_icl_examples=args.num_icl_examples,
+        icl_references_csv=args.icl_references_csv,
+        icl_seed=args.icl_seed,
     )
 
     # python main.py --lang de --modality audio --prompt standard --model qwen_omni
