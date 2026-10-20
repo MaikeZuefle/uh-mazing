@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-LANG_COLS = ["zh", "es", "hi", "fr", "de", "it", "cs", "ar"]
+LANG_COLS = ["ar", "cs", "de", "es", "fr", "hi", "it", "zh"]
 
 # audio-gemini / audio-chatgpt (the "with extra context" audio condition) are intentionally
 # excluded from the tables below -- only the audio-noextra condition is reported.
@@ -11,24 +11,24 @@ EXCLUDED_MODELS = {"audio-gemini", "audio-chatgpt"}
 # (used for the partial \cmidrule within a category). One entry per model -- nothing
 # below should need to be redefined per table.
 MODELS = {
-    "canary-llama": {"category": "Cascaded", "display": "\\textsc{Llama}\\textsubscript{Canary}", "subgroup": "asr"},
-    "canary-tower": {"category": "Cascaded", "display": "\\textsc{Tower}\\textsubscript{Canary}", "subgroup": "asr"},
-    "whisper-llama": {"category": "Cascaded", "display": "\\textsc{Llama}\\textsubscript{Whisper}", "subgroup": "asr"},
-    "whisper-tower": {"category": "Cascaded", "display": "\\textsc{Tower}\\textsubscript{Whisper}", "subgroup": "asr"},
-    "gold-transcript-llama": {"category": "Cascaded", "display": "\\textsc{Llama}\\textsubscript{Gold}", "subgroup": "gold"},
-    "gold-transcript-tower": {"category": "Cascaded", "display": "\\textsc{Tower}\\textsubscript{Gold}", "subgroup": "gold"},
+    "canary-llama": {"category": "Cascaded", "display": "\\textsc{Llama}\\textsubscript{Canary ASR}", "subgroup": "asr"},
+    "canary-tower": {"category": "Cascaded", "display": "\\textsc{Tower}\\textsubscript{Canary ASR}", "subgroup": "asr"},
+    "whisper-llama": {"category": "Cascaded", "display": "\\textsc{Llama}\\textsubscript{Whisper ASR}", "subgroup": "asr"},
+    "whisper-tower": {"category": "Cascaded", "display": "\\textsc{Tower}\\textsubscript{Whisper ASR}", "subgroup": "asr"},
+    "gold-transcript-llama": {"category": "Cascaded", "display": "\\textsc{Llama}\\textsubscript{Human transcript}", "subgroup": "gold"},
+    "gold-transcript-tower": {"category": "Cascaded", "display": "\\textsc{Tower}\\textsubscript{Human transcript}", "subgroup": "gold"},
     "owsm": {"category": "End-to-end", "display": "\\textsc{OWSM}"},
     "canary": {"category": "End-to-end", "display": "\\textsc{Canary}"},
-    "phi": {"category": "SpeechLLM", "display": "\\textsc{Phi-4}"},
-    "qwen": {"category": "SpeechLLM", "display": "\\textsc{Qwen2.5}"},
-    "gold-text-gemini": {"category": "Commercial", "display": "\\textsc{Gemini}\\textsubscript{Gold}", "subgroup": "gold"},
-    "gold-text-chatgpt": {"category": "Commercial", "display": "\\textsc{ChatGPT}\\textsubscript{Gold}", "subgroup": "gold"},
-    "asr-text-gemini": {"category": "Commercial", "display": "\\textsc{Gemini}\\textsubscript{ASR}", "subgroup": "asr"},
-    "asr-text-chatgpt": {"category": "Commercial", "display": "\\textsc{ChatGPT}\\textsubscript{ASR}", "subgroup": "asr"},
+    "phi": {"category": "SpeechLLM", "display": "\\textsc{Phi-4-MM-instruct}"},
+    "qwen": {"category": "SpeechLLM", "display": "\\textsc{Qwen2.5-Omni}"},
+    "gold-text-gemini": {"category": "Commercial", "display": "\\textsc{Gemini}\\textsubscript{Human transcript}", "subgroup": "gold"},
+    "gold-text-chatgpt": {"category": "Commercial", "display": "\\textsc{ChatGPT}\\textsubscript{Human transcript}", "subgroup": "gold"},
+    "asr-text-gemini": {"category": "Commercial", "display": "\\textsc{Gemini}\\textsubscript{ASR transcript}", "subgroup": "asr"},
+    "asr-text-chatgpt": {"category": "Commercial", "display": "\\textsc{ChatGPT}\\textsubscript{ASR transcript}", "subgroup": "asr"},
     "audio-noextra-gemini": {"category": "Commercial", "display": "\\textsc{Gemini}\\textsubscript{Audio}", "subgroup": "audio"},
     "audio-noextra-chatgpt": {"category": "Commercial", "display": "\\textsc{ChatGPT}\\textsubscript{Audio}", "subgroup": "audio"},
-    "gold-transcript-chatgpt": {"category": "Commercial", "display": "\\textsc{ChatGPT}\\textsubscript{Gold}", "subgroup": "gold"},
-    "gold-transcript-gemini": {"category": "Commercial", "display": "\\textsc{Gemini}\\textsubscript{Gold}", "subgroup": "gold"},
+    "gold-transcript-chatgpt": {"category": "Commercial", "display": "\\textsc{ChatGPT}\\textsubscript{Human transcript}", "subgroup": "gold"},
+    "gold-transcript-gemini": {"category": "Commercial", "display": "\\textsc{Gemini}\\textsubscript{Human transcript}", "subgroup": "gold"},
 }
 
 ASR_MODEL_DISPLAY = {
@@ -66,10 +66,10 @@ MAIN_TABLE_CAPTIONS = {
         "tab:comet_main",
     ),
     "chrf": (
-        "chrF scores (standard prompt, English$\\to$X) for the best "
-        "automatic-transcript cascaded system, end-to-end, speechLLM, and audio-input "
-        "commercial models. Full results, including disfluency-aware prompting, gold "
-        "transcripts, and X$\\to$English, are in the appendix.",
+        "\\textbf{Cascaded systems lead in translation disfluent speech.} "
+        "chrF scores (standard prompt, English$\\to$X) for the best cascaded system, "
+        "end-to-end system, speechLLM, and commercial models. "
+        "Full results \\cref{app:detailed_results}.",
         "tab:chrf_main",
     ),
 }
@@ -98,8 +98,13 @@ def compute_bounds(values, higher_is_better=True, floor_quantile=FLOOR_QUANTILE)
     return s.quantile(1 - floor_quantile), s.min()
 
 
-# Requires \definecolor{tabblue}{HTML}{1F77B4} in the LaTeX preamble (matplotlib's tab:blue).
-def colorize(value_str, worst, best, color="tabblue", max_intensity=25):
+TABLE_COLOR = "tabsalmon"   # requires \definecolor{tabsalmon}{HTML}{EC9374} in preamble
+TABLE_COLOR_XEN = "tabblue"  # requires \definecolor{tabblue}{HTML}{3986BC} in preamble
+TABLE_COLOR_INTENSITY = 50  # coral at 25% is nearly invisible; 50% gives a clear gradient
+
+
+# Requires \definecolor{tabsalmon}{HTML}{EC9374} in the LaTeX preamble.
+def colorize(value_str, worst, best, color=TABLE_COLOR, max_intensity=TABLE_COLOR_INTENSITY):
     if value_str == "--":
         return value_str
     norm = 0.0 if best == worst else (float(value_str) - worst) / (best - worst)
@@ -155,7 +160,7 @@ def run_lengths(items):
     return lengths
 
 
-def build_row_lines(rows):
+def build_row_lines(rows, color=TABLE_COLOR):
     """Build LaTeX row lines, grouping contiguous rows by model category into a leading
     \\multirow column, also \\multirow-ing the model column over its standard/disfluency-aware
     prompt pair, colorizing each language column by its min/max within these rows, inserting a
@@ -163,10 +168,13 @@ def build_row_lines(rows):
     between known subgroups within a category."""
     ncols = 3 + len(LANG_COLS)
     col_bounds = {}
+    col_best = {}
     for lang in LANG_COLS:
         values = [float(row[lang]) for row in rows if not pd.isna(row[lang]) and row[lang] != ""]
+        fmt_values = [float(fmt_cell(row[lang])) for row in rows if not pd.isna(row[lang]) and row[lang] != ""]
         if values:
             col_bounds[lang] = compute_bounds(values, higher_is_better=True)
+            col_best[lang] = max(fmt_values)
 
     lines = []
     i, first_group = 0, True
@@ -186,7 +194,7 @@ def build_row_lines(rows):
         for k, row in enumerate(group):
             subgroup = MODELS[row["model"]].get("subgroup")
             if k > 0 and subgroup != prev_subgroup:
-                lines.append(f"\\cmidrule{{2-{ncols}}}")
+                lines.append("\\addlinespace[3pt]")
             prev_subgroup = subgroup
             is_new_model = k == 0 or group[k]["model"] != group[k - 1]["model"]
             if is_new_model:
@@ -198,10 +206,20 @@ def build_row_lines(rows):
             prompt = prompt_display(row["prompt_type"])
             cells = []
             for lang in LANG_COLS:
-                cell = fmt_cell(row[lang])
-                if lang in col_bounds:
+                raw = fmt_cell(row[lang])
+                is_best = (
+                    raw != "--"
+                    and lang in col_best
+                    and abs(float(raw) - col_best[lang]) < 1e-9
+                )
+                display = f"\\textbf{{{raw}}}" if is_best else raw
+                if lang in col_bounds and raw != "--":
                     worst, best = col_bounds[lang]
-                    cell = colorize(cell, worst, best)
+                    norm = max(0.0, min(1.0, (float(raw) - worst) / (best - worst))) if best != worst else 0.0
+                    intensity = round(norm * TABLE_COLOR_INTENSITY)
+                    cell = f"\\cellcolor{{{color}!{intensity}}}{{{display}}}"
+                else:
+                    cell = display
                 cells.append(cell)
             if k == 0:
                 cat_cell = f"\\multirow{{{len(group)}}}{{*}}{{{category}}}" if len(group) > 1 else category
@@ -242,9 +260,10 @@ def build_translation_table(csv_path, metric):
         lines.append(f"\\multicolumn{{{ncols}}}{{c}}{{\\textit{{{section_titles[section_name]}}}}} \\\\")
         lines.append("\\midrule")
         section_rows = sections[section_name]
+        color = TABLE_COLOR_XEN if section_name == "X → EN TRANSLATIONS" else TABLE_COLOR
         if section_name == "X → EN TRANSLATIONS":
             section_rows = [row for row in section_rows if row["prompt_type"] != "disfluency_aware"]
-        lines.extend(build_row_lines(section_rows))
+        lines.extend(build_row_lines(section_rows, color=color))
         first_section = False
 
     lines.append("\\bottomrule")
@@ -274,6 +293,146 @@ def select_best_cascaded_asr_model(rows):
         if mean > best_mean:
             best_mean, best_model = mean, model
     return best_model
+
+
+ALL_MODELS_ORDER = [
+    "canary-llama", "whisper-llama", "gold-transcript-llama",
+    "canary-tower", "whisper-tower", "gold-transcript-tower",
+    "owsm", "canary",
+    "phi", "qwen",
+    "asr-text-gemini", "gold-text-gemini", "audio-noextra-gemini",
+    "asr-text-chatgpt", "gold-text-chatgpt", "audio-noextra-chatgpt",
+]
+
+ALL_MODELS_CAPTIONS = {
+    "chrf": (
+        "\\textbf{Cascaded systems lead among open-source models, and commercial systems achieve the highest scores overall.} "
+        "chrF scores (standard prompt) for all models and transcript conditions, "
+        "English$\\to$X and X$\\to$English. "
+        "Subscripts: Audio = speech input; ASR = automatic transcript; Human = human transcript.",
+        "tab:chrf_main",
+    ),
+    "comet": (
+        "COMET-Kiwi scores (standard prompt) for all models and transcript conditions, "
+        "English$\\to$X and X$\\to$English. "
+        "Subscripts: Audio = speech input; ASR = automatic transcript; Human = human transcript.",
+        "tab:comet_main_all",
+    ),
+}
+
+
+# Commercial models appear under different keys in X→EN vs EN→X data.
+MODEL_ALIASES = {
+    "gold-transcript-chatgpt": "gold-text-chatgpt",
+    "gold-transcript-gemini": "gold-text-gemini",
+}
+
+
+def _canonical(model):
+    return MODEL_ALIASES.get(model, model)
+
+
+def _render_all_models_section(rows, lines, first_section, color=TABLE_COLOR):
+    """Render one direction section (EN→X or X→EN) into lines for build_all_models_std_table."""
+    order_index = {model: idx for idx, model in enumerate(ALL_MODELS_ORDER)}
+    rows = sorted(
+        (row for row in rows if _canonical(row["model"]) in order_index),
+        key=lambda row: order_index[_canonical(row["model"])],
+    )
+
+    col_bounds = {}
+    col_best = {}
+    for lang in LANG_COLS:
+        values = [float(row[lang]) for row in rows if not pd.isna(row[lang]) and row[lang] != ""]
+        fmt_values = [float(fmt_cell(row[lang])) for row in rows if not pd.isna(row[lang]) and row[lang] != ""]
+        if values:
+            col_bounds[lang] = compute_bounds(values, higher_is_better=True)
+            col_best[lang] = max(fmt_values)
+
+    ncols = 2 + len(LANG_COLS)
+    i, first_group = 0, True
+    while i < len(rows):
+        category = MODELS[rows[i]["model"]]["category"]
+        j = i
+        while j < len(rows) and MODELS[rows[j]["model"]]["category"] == category:
+            j += 1
+        group = rows[i:j]
+        if category == "Cascaded":
+            group = sorted(group, key=lambda row: CASCADED_ORDER_INDEX.get(row["model"], 99))
+        if not first_group:
+            lines.append("\\midrule")
+        first_group = False
+        prev_subgroup = None
+        for k, row in enumerate(group):
+            subgroup = MODELS[row["model"]].get("subgroup")
+            if k > 0 and subgroup != prev_subgroup:
+                lines.append("\\addlinespace[3pt]")
+            prev_subgroup = subgroup
+            model_disp = MODELS[row["model"]].get("display", escape_latex(row["model"]))
+            cells = []
+            for lang in LANG_COLS:
+                raw = fmt_cell(row[lang])
+                is_best = (
+                    raw != "--"
+                    and lang in col_best
+                    and abs(float(raw) - col_best[lang]) < 1e-9
+                )
+                display = f"\\textbf{{{raw}}}" if is_best else raw
+                if lang in col_bounds and raw != "--":
+                    worst, best = col_bounds[lang]
+                    norm = max(0.0, min(1.0, (float(raw) - worst) / (best - worst))) if best != worst else 0.0
+                    intensity = round(norm * TABLE_COLOR_INTENSITY)
+                    cell = f"\\cellcolor{{{color}!{intensity}}}{{{display}}}"
+                else:
+                    cell = display
+                cells.append(cell)
+            if k == 0:
+                cat_cell = f"\\multirow{{{len(group)}}}{{*}}{{{category}}}" if len(group) > 1 else category
+            else:
+                cat_cell = ""
+            lines.append(" & ".join([cat_cell, model_disp] + cells) + " \\\\")
+        i = j
+
+
+def build_all_models_std_table(csv_path, metric):
+    """Full table: standard prompt only, all models and transcript conditions, EN→X and X→EN."""
+    caption, label = ALL_MODELS_CAPTIONS[metric]
+    df = pd.read_csv(csv_path)
+    sections = split_sections(df)
+    ncols = 2 + len(LANG_COLS)
+
+    section_data = {
+        "EN $\\to$ X: Speech-to-Text Translation": [r for r in sections.get("EN → X TRANSLATIONS", []) if r["prompt_type"] != "disfluency_aware"],
+        "X $\\to$ EN: Text-to-Text Translation": [r for r in sections.get("X → EN TRANSLATIONS", []) if r["prompt_type"] != "disfluency_aware"],
+    }
+
+    lines = []
+    lines.append("\\begin{table*}[t]")
+    lines.append("\\centering")
+    lines.append("\\resizebox{\\textwidth}{!}{%")
+    lines.append("\\begin{tabular}{ll" + "r" * len(LANG_COLS) + "}")
+    lines.append("\\toprule")
+    header = ["Category", "Model"] + [c.upper() for c in LANG_COLS]
+    lines.append(" & ".join(f"\\textbf{{{h}}}" for h in header) + " \\\\")
+
+    first_section = True
+    for section_title, rows in section_data.items():
+        if not rows:
+            continue
+        color = TABLE_COLOR_XEN if "X $\\to$ EN" in section_title else TABLE_COLOR
+        lines.append("\\midrule")
+        lines.append(f"\\multicolumn{{{ncols}}}{{c}}{{\\textit{{{section_title}}}}} \\\\")
+        lines.append("\\midrule")
+        _render_all_models_section(rows, lines, first_section, color=color)
+        first_section = False
+
+    lines.append("\\bottomrule")
+    lines.append("\\end{tabular}%")
+    lines.append("}")
+    lines.append(f"\\caption{{{caption}}}")
+    lines.append(f"\\label{{{label}}}")
+    lines.append("\\end{table*}")
+    return "\n".join(lines)
 
 
 def build_main_translation_table(csv_path, metric):
@@ -398,7 +557,7 @@ def build_asr_table(csv_path):
     return "\n".join(lines)
 
 
-LLM_JUDGE_LANG_COLS = ["zh", "es", "hi", "fr", "de", "it", "cs", "ar"]
+LLM_JUDGE_LANG_COLS = ["ar", "cs", "de", "es", "fr", "hi", "it", "zh"]
 
 LLM_JUDGE_SYSTEM_ORDER = [
     "gold_cascaded/tower", "end2end/canary", "speechllm/phi_multimodal", "end2end/gemini-2.5-flash",
@@ -473,10 +632,10 @@ def build_llm_judge_combined_table(style_csv, meaning_csv):
 
 CORRELATION_METRIC_ORDER = ["llm_judge", "llm_judge_ref", "chrf", "comet"]
 CORRELATION_METRIC_DISPLAY = {
-    "llm_judge": "LLM-judge",
-    "llm_judge_ref": "LLM-judge (ref)",
+    "llm_judge": "\\mbox{LLM-judge}",
+    "llm_judge_ref": "\\mbox{LLM-judge}",
     "chrf": "chrF",
-    "comet": "COMET-Kiwi",
+    "comet": "\\mbox{COMET-Kiwi}",
 }
 CORRELATION_AXIS_ORDER = ["style", "meaning", "overall"]
 CORRELATION_AXIS_DISPLAY = {"style": "Style", "meaning": "Meaning", "overall": "Overall"}
@@ -489,7 +648,6 @@ METRIC_HAS_REF = {"llm_judge": False, "llm_judge_ref": True, "chrf": True, "come
 
 def build_correlation_table(csv_path):
     df = pd.read_csv(csv_path)
-    # average each (human_axis, metric, granularity) over the 8 languages
     avg = df.groupby(["human_axis", "metric", "granularity"])["value"].mean()
 
     metrics_present = [m for m in CORRELATION_METRIC_ORDER if m in df["metric"].unique()]
@@ -504,27 +662,27 @@ def build_correlation_table(csv_path):
     lines = []
     lines.append("\\begin{table}[t]")
     lines.append("\\centering")
-    lines.append("\\resizebox{\\columnwidth}{!}{%")
-    lines.append("\\begin{tabular}{llcrr}")
+    lines.append("\\begin{tabular}{llrr}")
     lines.append("\\toprule")
-    header = [
-        "Metric", "Ref?", "\\shortstack{Human\\\\Axis}",
-        "\\shortstack{Segment-\\\\Corr}", "\\shortstack{System-\\\\Corr}",
-    ]
-    lines.append(" & ".join(f"\\textbf{{{h}}}" for h in header) + " \\\\")
-    lines.append("\\midrule")
+    lines.append(
+        " & ".join(f"\\textbf{{{h}}}" for h in [
+            "Metric", "\\shortstack{Ref-\\\\based?}",
+            "\\shortstack{Segm.\\\\Corr.}",
+            "\\shortstack{Sys.\\\\Corr.}",
+        ]) + " \\\\"
+    )
 
-    for i, metric in enumerate(metrics_present):
-        if i > 0:
-            lines.append("\\midrule")
-        axis_matched = metric in AXIS_MATCHED_METRICS
-        metric_disp = (
-            None if axis_matched
-            else f"\\multirow{{{len(CORRELATION_AXIS_ORDER)}}}{{*}}{{{CORRELATION_METRIC_DISPLAY[metric]}}}"
-        )
-        ref_symbol = "$\\checkmark$" if METRIC_HAS_REF.get(metric, False) else "$\\times$"
-        ref_disp = f"\\multirow{{{len(CORRELATION_AXIS_ORDER)}}}{{*}}{{{ref_symbol}}}"
-        for k, axis in enumerate(CORRELATION_AXIS_ORDER):
+    for axis in CORRELATION_AXIS_ORDER:
+        lines.append("\\midrule")
+        lines.append(f"\\multicolumn{{4}}{{c}}{{\\textit{{{CORRELATION_AXIS_DISPLAY[axis]}}}}} \\\\")
+        lines.append("\\midrule")
+        for metric in metrics_present:
+            axis_matched = metric in AXIS_MATCHED_METRICS
+            ref_symbol = "$\\checkmark$" if METRIC_HAS_REF.get(metric, False) else "$\\times$"
+            if axis_matched:
+                metric_disp = f"{CORRELATION_METRIC_DISPLAY[metric]}\\textsubscript{{{CORRELATION_AXIS_DISPLAY[axis]}}}"
+            else:
+                metric_disp = CORRELATION_METRIC_DISPLAY[metric]
             seg = avg.get((axis, metric, "segment"))
             sys_ = avg.get((axis, metric, "system"))
             seg_str = f"{seg * 100:.1f}" if seg is not None else "--"
@@ -533,33 +691,23 @@ def build_correlation_table(csv_path):
                 seg_str = f"\\textbf{{{seg_str}}}"
             if sys_ is not None and best.get((axis, "system")) == sys_:
                 sys_str = f"\\textbf{{{sys_str}}}"
-            if axis_matched:
-                row_metric_cell = f"{CORRELATION_METRIC_DISPLAY[metric]}\\textsubscript{{{CORRELATION_AXIS_DISPLAY[axis]}}}"
-            else:
-                row_metric_cell = metric_disp if k == 0 else ""
-            ref_cell = ref_disp if k == 0 else ""
-            lines.append(
-                " & ".join([row_metric_cell, ref_cell, CORRELATION_AXIS_DISPLAY[axis], seg_str, sys_str])
-                + " \\\\"
-            )
+            lines.append(" & ".join([metric_disp, ref_symbol, seg_str, sys_str]) + " \\\\")
 
     lines.append("\\bottomrule")
-    lines.append("\\end{tabular}%")
-    lines.append("}")
+    lines.append("\\end{tabular}")
     lines.append(
-        "\\caption{Correlation (\\%) between human Style/Meaning/Overall judgments and automatic "
-        "metrics, averaged over the eight languages and four systems in the human evaluation. "
-        "For LLM-judge, the predicted score matches the human axis in each row (e.g.\\ predicted "
-        "Style vs.\\ human Style); chrF and COMET-Kiwi give a single quality score per item that "
-        "is compared against all three human axes. Segment-level: mean Kendall's $\\tau$ "
-        "(within-item, across systems). System-level: soft pairwise accuracy (SPA).}"
+        "\\caption{\\textbf{Reference-based metrics have best correlation with human judgments "
+        "on disfluent translations.} Correlation (\\%) between human Style/Meaning/Overall "
+        "judgments and automatic metrics, averaged over the eight languages and four systems. "
+        "Segment-level: mean Kendall's $\\tau$ (within-item, across systems). "
+        "System-level: soft pairwise accuracy (SPA).}"
     )
     lines.append("\\label{tab:correlation}")
     lines.append("\\end{table}")
     return "\n".join(lines)
 
 
-CORRELATION_LANG_COLS = ["zh", "es", "hi", "fr", "de", "it", "cs", "ar"]
+CORRELATION_LANG_COLS = ["ar", "cs", "de", "es", "fr", "hi", "it", "zh"]
 
 NODE_COMBO_LANG_COLS = ["zh", "es", "hi", "fr", "de", "it", "cs"]
 
@@ -752,6 +900,12 @@ def create_latex_tables(comet_csv, chrf_csv, asr_csv, llm_judge_style_csv, llm_j
 
     with open(os.path.join(output_dir, "chrf_main_table.tex"), "w", encoding="utf-8") as f:
         f.write(build_main_translation_table(chrf_csv, "chrf"))
+
+    with open(os.path.join(output_dir, "chrf_main_all_table.tex"), "w", encoding="utf-8") as f:
+        f.write(build_all_models_std_table(chrf_csv, "chrf"))
+
+    with open(os.path.join(output_dir, "comet_main_all_table.tex"), "w", encoding="utf-8") as f:
+        f.write(build_all_models_std_table(comet_csv, "comet"))
 
     with open(os.path.join(output_dir, "asr_table.tex"), "w", encoding="utf-8") as f:
         f.write(build_asr_table(asr_csv))

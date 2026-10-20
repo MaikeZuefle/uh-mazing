@@ -193,10 +193,11 @@ def main(in_data_folder, out_folder, model, src_lang, trg_lang, modality, prompt
 
 
     for file_name, example_path in tqdm(input_data, desc="Generating Outputs"):
-        icl_examples = None
+        # only pass icl_examples when ICL is on, since not every model's generate() accepts it
+        icl_kwargs = {}
         if icl_pool is not None:
-            icl_examples = select_icl_examples(icl_pool, file_name, k=num_icl_examples, seed_base=icl_seed)
-        output = generate(model_instance, instruction, example_path, modality, src_lang=src_lang, trg_lang=trg_lang, gen_kwargs=gen_kwargs, icl_examples=icl_examples).strip()
+            icl_kwargs["icl_examples"] = select_icl_examples(icl_pool, file_name, k=num_icl_examples, seed_base=icl_seed)
+        output = generate(model_instance, instruction, example_path, modality, src_lang=src_lang, trg_lang=trg_lang, gen_kwargs=gen_kwargs, **icl_kwargs).strip()
         outputs.append((file_name, output))
 
     logging.info(f"Writing Outputs to XML file {output_file_path}.")

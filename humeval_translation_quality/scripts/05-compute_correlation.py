@@ -23,26 +23,29 @@ SYSTEM_TO_PER_ITEM_FILTER = {
 
 
 def load_human_ratings_and_item_ids(input_json):
+    import re
     with open(input_json, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    # ratings[(lang, item_i, system)] = list of (style, meaning) ratings from individual raters
+    # Key by (lang, wav_filename, system) so that different annotators who received
+    # different utterances at the same item_i position are never mixed together.
+    # Previously keyed by (lang, item_i, system), but item_i is 0-19 for every
+    # annotator batch regardless of which utterance they saw, causing ratings for
+    # different utterances to be averaged as if they were the same item.
     ratings = collections.defaultdict(list)
-    # item_id_lookup[(lang, item_i)] = Switchboard sample id, recovered from the audio src
-    # embedded in the session's item HTML (e.g. '.../sw02024_B_4.wav').
+    # item_id_lookup is kept for API compatibility but is now identity: wav -> wav.
     item_id_lookup = {}
     for campaign, sessions in data.items():
         lang = campaign.split("_")[-1]
         for session in sessions:
             if session.get("item") is None or len(session["item"]) != 1:
                 continue
-            item_i = session["item_i"]
             src_html = session["item"][0].get("src", "")
-            start = src_html.find("preprocessed_audio_switchboard/")
-            if start != -1:
-                start += len("preprocessed_audio_switchboard/")
-                end = src_html.find(".wav", start)
-                item_id_lookup[(lang, item_i)] = src_html[start:end]
+            m = re.search(r"preprocessed_audio_switchboard/([^\"]+?)(?:\.wav)?\"", src_html)
+            if not m:
+                continue
+            wav = m.group(1)
+            item_id_lookup[(lang, wav)] = wav
 
             annotation = session["annotation"][0]
             if not isinstance(annotation, dict):
@@ -53,7 +56,7 @@ def load_human_ratings_and_item_ids(input_json):
                 meaning = sliders.get("Meaning preservation")
                 if style is None or meaning is None:
                     continue
-                ratings[(lang, item_i, system)].append((style, meaning))
+                ratings[(lang, wav, system)].append((style, meaning))
     return ratings, item_id_lookup
 
 
@@ -164,11 +167,8 @@ def build_data(human_axis, human_ratings, item_id_lookup, metric_sources):
     """metric_sources: dict[metric_name] -> dict[(lang, item_id, system)] = value.
     Only rows present in human ratings AND every metric source are included."""
     data = []
-    for (lang, item_i, system), raw_ratings in human_ratings.items():
-        item_id = item_id_lookup.get((lang, item_i))
-        if item_id is None:
-            continue
-        key = (lang, item_id, system)
+    for (lang, wav, system), raw_ratings in human_ratings.items():
+        key = (lang, wav, system)
         if not all(key in src for src in metric_sources.values()):
             continue
         if human_axis == "overall":
@@ -177,7 +177,7 @@ def build_data(human_axis, human_ratings, item_id_lookup, metric_sources):
             idx = 0 if human_axis == "style" else 1
             human_value = sum(r[idx] for r in raw_ratings) / len(raw_ratings)
         data.append({
-            "doc_id": f"{lang}_{item_id}",
+            "doc_id": f"{lang}_{wav}",
             "src_lang": "en",
             "tgt_lang": lang,
             "tgt_system": system,

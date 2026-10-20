@@ -66,7 +66,7 @@ def plot_scatter(input_csv, output_path):
     df = df[~((df["llm_judge_style"] == 0) & (df["llm_judge_meaning"] == 0))]
 
     lo = 35
-    hi = max(df["llm_judge_style"].max(), df["llm_judge_meaning"].max()) + 5
+    hi = 100
 
     plt.rcParams["font.family"] = "DejaVu Sans"
     fig, ax = plt.subplots(figsize=(5.5, 5.5))
