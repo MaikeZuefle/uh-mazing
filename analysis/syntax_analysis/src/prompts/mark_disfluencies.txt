@@ -1,0 +1,20 @@
+You are annotating disfluencies in a translation of spontaneous speech.
+
+The English source below is a transcript in which every disfluent token is enclosed in underscores, e.g. _uh_ or _you_ _know_. Disfluencies are filled pauses (uh, um), interjections (well, oh), parentheticals (you know, I mean) and edited speech (repetitions, false starts and self-corrections).
+
+ENGLISH SOURCE:
+{source}
+
+Below is the translation of this source into {language}, split into numbered tokens.
+
+TRANSLATION TOKENS:
+{tokens}
+
+Mark every token of the translation that renders one of the marked disfluencies of the source, including punctuation that belongs to such a disfluency. Rules:
+- Only mark tokens that correspond to a disfluency marked in the source.
+- Do not mark tokens that render fluent content of the source.
+- If the translation leaves out a disfluency, there is nothing to mark for it.
+- If the translation contains disfluent-looking material that has no marked counterpart in the source (for example a filler or repetition the system added), do not mark it.
+
+Answer with JSON only, in this format:
+{"disfluent_token_indices": [list of token numbers]}

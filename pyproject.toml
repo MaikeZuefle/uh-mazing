@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "uh-mazing"
+version = "0.1.0"
+description = "UH-MAZING: benchmarking and analysis of disfluencies in speech translation"
+requires-python = ">=3.10"
+dependencies = [
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "soundfile",
+    "torch",
+    "torchaudio",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+benchmarking = [
+    "espnet",
+    "jieba",
+    "jiwer",
+    "langcodes",
+    "librosa",
+    "nemo_toolkit[asr]",
+    "omegaconf",
+    "qwen-omni-utils",
+    "sacrebleu",
+    "scipy",
+    "subset2evaluate",
+    "transformers",
+    "unbabel-comet",
+]
+analysis = [
+    "jieba",
+    "nltk",
+    "nrclex",
+    "openai",
+    "pyarrow",
+    "python-dotenv",
+    "scipy",
+    "seaborn",
+    "stanza",
+]
+
+[tool.setuptools]
+packages = []

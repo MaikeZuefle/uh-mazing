@@ -1,0 +1,18 @@
+Below is a transcript from a spontaneous English conversation. Identify the emotions the speaker themselves is conveying.
+
+Focus on how the speaker feels, not on the topic they are describing.
+
+Provide up to 5 emotions and rate the intensity of each on a scale from 0 (not intense) to 5 (very intense).
+
+Example: The utterance "I, uh, I don't know, I just, I really wish they would, you know, just listen to me." could reflect the speaker's emotion frustration with moderate intensity (3) or helplessness with low intensity (2).
+
+Return valid JSON in this exact format:
+{
+  "emotions": [
+    {"emotion": "frustrated", "intensity": 4},
+    {"emotion": "helpless", "intensity": 1}
+  ]
+}
+
+Transcript:
+{text}
